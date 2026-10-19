@@ -1,0 +1,51 @@
+@startuml SD-05_dekompoziciya
+!include seqhead.iuml
+title SD-05. Декомпозиция цели с помощью ИИ (ФТ-38–ФТ-41)
+actor "Пользователь" as U
+box "Браузер пользователя" #F7FAFD
+participant "Веб-интерфейс" as UI
+participant "Модуль ИИ" as AI
+participant "Модуль задач\nи целей" as TM
+database "Хранилище\n(IndexedDB)" as DB
+end box
+box "Сервер" #FBF7F2
+participant "Серверная часть\n(FastAPI)" as SRV
+end box
+participant "LLM API" as LLM
+
+U -> UI : «Разбить цель на задачи»
+UI -> AI : decompose(цель)
+AI -> SRV : POST /ai/decompose\n(название и описание цели,\nбез файлов)
+SRV -> LLM : запрос с ключом API\nи схемой ответа (JSON)
+alt ответ получен за 60 с
+  LLM --> SRV : предложение
+  SRV --> AI : предложение (JSON)
+  AI -> AI : проверить формат,\nзначения и ссылки
+  alt ответ корректен
+    AI -> DB : записать в историю\n(outcome = pending)
+    AI --> UI : список задач
+    UI --> U : предложение для проверки
+    U -> UI : изменить, удалить или\nдобавить задачи
+    alt подтверждено
+      U -> UI : «Создать задачи»
+      UI -> TM : applyDecomposition(цель, задачи)
+      group транзакция
+        TM -> DB : создать задачи с порядком 1..N
+        TM -> DB : история: accepted / edited
+      end
+      TM --> UI : задачи созданы
+      UI --> U : задачи на странице цели
+    else отклонено
+      U -> UI : «Отклонить»
+      UI -> DB : история: rejected
+    end
+  else ответ некорректен
+    AI --> UI : ошибка формата ответа
+    UI --> U : «Не удалось разобрать ответ ИИ»
+  end
+else таймаут или ошибка (после 2 повторов)
+  SRV --> AI : ошибка
+  AI --> UI : сервис ИИ недоступен
+  UI --> U : сообщение; ручная работа доступна
+end
+@enduml

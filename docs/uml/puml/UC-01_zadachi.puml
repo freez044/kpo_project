@@ -1,0 +1,42 @@
+@startuml UC-01_zadachi
+!include style.iuml
+title UC-01. Задачи, цели и данные пользователя
+left to right direction
+
+actor "Пользователь\n(студент)" as U
+
+rectangle "Adaptive AI Planner" {
+  package "Профиль и данные" {
+    usecase "UC-01 Заполнить профиль\n(ФТ-01)" as UC01
+    usecase "UC-02 Выгрузить резервную копию\n(ФТ-03)" as UC02
+    usecase "UC-03 Восстановить данные\nиз резервной копии (ФТ-04)" as UC03
+    usecase "UC-04 Удалить все данные\n(ФТ-05)" as UC04
+  }
+  package "Задачи и цели" {
+    usecase "UC-05 Управлять задачами\n(ФТ-06–ФТ-09)" as UC05
+    usecase "UC-06 Изменить статус задачи\n(ФТ-30, ФТ-31)" as UC06
+    usecase "UC-07 Работать с канбан-доской\n(ФТ-17–ФТ-19)" as UC07
+    usecase "Отфильтровать задачи\n(ФТ-18)" as UC07F
+    usecase "UC-08 Управлять целями\n(ФТ-10–ФТ-13)" as UC08
+    usecase "UC-09 Управлять категориями\n(ФТ-14–ФТ-16)" as UC09
+    usecase "UC-10 Прикрепить файл\n(ФТ-33–ФТ-35)" as UC10
+    usecase "UC-11 Вести рабочую сессию\n(ФТ-32)" as UC11
+    usecase "UC-12 Просмотреть главную страницу\n(ФТ-20)" as UC12
+  }
+}
+
+U --> UC01
+U --> UC02
+U --> UC03
+U --> UC04
+U --> UC05
+U --> UC07
+U --> UC08
+U --> UC09
+U --> UC10
+U --> UC11
+U --> UC12
+
+UC07 .> UC06 : <<include>>
+UC07F .> UC07 : <<extend>>
+@enduml

@@ -1,0 +1,5 @@
+!include style.iuml
+autonumber
+skinparam ParticipantPadding 12
+skinparam BoxPadding 8
+hide footbox

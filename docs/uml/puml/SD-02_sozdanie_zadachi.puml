@@ -1,0 +1,28 @@
+@startuml SD-02_sozdanie_zadachi
+!include seqhead.iuml
+title SD-02. Создание задачи (ФТ-06–ФТ-08)
+actor "Пользователь" as U
+box "Браузер пользователя" #F7FAFD
+participant "Веб-интерфейс" as UI
+participant "Модуль задач\nи целей" as TM
+database "Хранилище\n(IndexedDB)" as DB
+end box
+
+U -> UI : «Новая задача»
+UI --> U : форма задачи
+U -> UI : название, описание,\n[приоритет, дедлайн, цель,\nкатегория, оценка]
+UI -> TM : createTask(данные)
+TM -> TM : проверить название и\nположительность оценки
+alt данные корректны
+  TM -> DB : add(task, статус BACKLOG)
+  DB --> TM : id задачи
+  TM --> UI : задача создана
+  opt не указан дедлайн или оценка
+    UI --> U : предложить заполнить\nнедостающие данные
+  end
+  UI --> U : карточка в колонке «Бэклог»
+else ошибка проверки
+  TM --> UI : ValidationError
+  UI --> U : сообщение об ошибке
+end
+@enduml

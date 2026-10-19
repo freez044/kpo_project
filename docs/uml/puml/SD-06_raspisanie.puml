@@ -1,0 +1,37 @@
+@startuml SD-06_raspisanie
+!include seqhead.iuml
+title SD-06. Импорт учебного расписания (ФТ-23, ФТ-24)
+actor "Пользователь" as U
+box "Браузер пользователя" #F7FAFD
+participant "Веб-интерфейс" as UI
+participant "Модуль календаря\nи расписания" as CM
+database "Хранилище\n(IndexedDB)" as DB
+end box
+box "Сервер" #FBF7F2
+participant "Серверная часть\n(FastAPI)" as SRV
+end box
+participant "ОРИОКС" as OR
+
+U -> UI : «Обновить расписание»
+UI -> CM : importSchedule(группа из профиля)
+CM -> SRV : GET /orioks/schedule?group=…
+SRV -> OR : запрос расписания
+alt ОРИОКС доступен
+  OR --> SRV : занятия группы
+  SRV --> CM : занятия (JSON)
+  CM -> DB : заменить занятия\nиз источника «orioks»
+  DB --> CM : ok
+  CM --> UI : расписание обновлено
+  UI --> U : занятия в календаре
+else ОРИОКС недоступен
+  SRV --> CM : ошибка
+  CM --> UI : ОРИОКС недоступен
+  UI --> U : предложить загрузить\nфайл расписания
+  U -> UI : файл общего расписания
+  UI -> CM : importFromFile(файл)
+  CM -> CM : разобрать файл и выбрать\nзанятия группы
+  CM -> DB : заменить занятия\nиз источника «file»
+  CM --> UI : расписание обновлено
+  UI --> U : занятия в календаре
+end
+@enduml
