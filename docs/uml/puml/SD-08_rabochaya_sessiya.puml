@@ -1,0 +1,32 @@
+@startuml SD-08_rabochaya_sessiya
+!include seqhead.iuml
+title SD-08. Рабочая сессия по задаче (ФТ-32)
+actor "Пользователь" as U
+box "Браузер пользователя" #F7FAFD
+participant "Веб-интерфейс" as UI
+participant "Модуль рабочих\nсессий" as SM
+database "Хранилище\n(IndexedDB)" as DB
+end box
+
+U -> UI : «Начать работу» в карточке задачи
+UI -> SM : startSession(taskId)
+SM -> DB : есть ли активная сессия\nпо задаче?
+alt активной сессии нет
+  SM -> DB : создать сессию (startedAt)
+  DB --> SM : id сессии
+  SM --> UI : сессия запущена
+  UI --> U : таймер на карточке\nи на главной странице
+  ... пользователь работает над задачей ...
+  U -> UI : «Завершить», заметка
+  UI -> SM : stopSession(id, заметка)
+  SM -> DB : endedAt, заметка
+  SM -> DB : все сессии задачи
+  DB --> SM : сессии
+  SM -> SM : фактическое время =\nсумма завершённых сессий
+  SM --> UI : факт и оценка длительности
+  UI --> U : «Факт 1 ч 40 мин из оценки 1 ч 30 мин»
+else сессия уже идёт
+  SM --> UI : ValidationError
+  UI --> U : «По этой задаче уже идёт сессия»
+end
+@enduml

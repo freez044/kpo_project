@@ -1,0 +1,74 @@
+@startuml CD-01_komponenty
+!include style.iuml
+title CD-01. Диаграмма компонентов Adaptive AI Planner
+skinparam componentStyle uml2
+left to right direction
+
+actor "Пользователь" as U
+
+node "Браузер пользователя" {
+  package "Веб-интерфейс (React + TypeScript)" as UIPKG {
+    [Главная страница] as SCR_HOME
+    [Канбан-доска] as SCR_KANBAN
+    [Цели] as SCR_GOALS
+    [Календарь] as SCR_CAL
+    [ИИ-ассистент] as SCR_AI
+    [Профиль и данные] as SCR_PROF
+  }
+  package "Модули логики" as LOGIC {
+    [Задачи и цели\n(ФТ-06–ФТ-16, ФТ-30, ФТ-31)] as M_TASK
+    [Календарь и расписание\n(ФТ-21–ФТ-25)] as M_CAL
+    [Контроль нагрузки\n(ФТ-26–ФТ-29)] as M_LOAD
+    [Рабочие сессии\n(ФТ-32)] as M_SES
+    [Файлы\n(ФТ-33–ФТ-35)] as M_FILE
+    [Модуль ИИ\n(ФТ-36–ФТ-41)] as M_AI
+    [Профиль и резервная копия\n(ФТ-01–ФТ-05)] as M_PROF
+    [API-клиент] as M_API
+  }
+  [Слой доступа к данным\n(Dexie, db.ts)] as DAL
+  database "IndexedDB" as IDB
+}
+
+node "Сервер" {
+  package "Серверная часть (FastAPI)" as SRV {
+    [REST API\n(OpenAPI)] as REST
+    [Адаптер языковой модели] as A_LLM
+    [Адаптер ОРИОКС] as A_OR
+  }
+}
+
+cloud "Внешние сервисы" {
+  [LLM API] as LLM
+  [ОРИОКС] as OR
+}
+
+U --> UIPKG
+
+SCR_HOME ..> M_TASK
+SCR_HOME ..> M_SES
+SCR_HOME ..> M_LOAD
+SCR_KANBAN ..> M_TASK
+SCR_GOALS ..> M_TASK
+SCR_GOALS ..> M_AI
+SCR_CAL ..> M_CAL
+SCR_AI ..> M_AI
+SCR_PROF ..> M_PROF
+
+M_TASK --> DAL
+M_CAL --> DAL
+M_LOAD --> DAL
+M_SES --> DAL
+M_FILE --> DAL
+M_AI --> DAL
+M_PROF --> DAL
+DAL --> IDB
+
+M_AI --> M_API
+M_CAL --> M_API
+M_LOAD --> M_API
+M_API --> REST : HTTPS, JSON
+REST --> A_LLM
+REST --> A_OR
+A_LLM --> LLM : ключ API\nтолько на сервере
+A_OR --> OR
+@enduml

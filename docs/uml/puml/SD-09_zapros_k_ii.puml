@@ -1,0 +1,56 @@
+@startuml SD-09_zapros_k_ii
+!include seqhead.iuml
+title SD-09. Создание или изменение задачи либо события по текстовому запросу к ИИ (ФТ-36, ФТ-37, ФТ-39–ФТ-41)
+actor "Пользователь" as U
+box "Браузер пользователя" #F7FAFD
+participant "ИИ-ассистент\n(экран)" as UI
+participant "Модуль ИИ" as AI
+participant "Модуль задач\nи целей" as TM
+participant "Модуль календаря" as CM
+database "Хранилище\n(IndexedDB)" as DB
+end box
+box "Сервер" #FBF7F2
+participant "Серверная часть\n(FastAPI)" as SRV
+end box
+participant "LLM API" as LLM
+
+U -> UI : «Перенеси встречу с научруком\nна пятницу 15:00»
+UI -> AI : command(текст)
+AI -> DB : названия целей, категорий,\nближайших задач и событий
+DB --> AI : контекст
+AI -> SRV : POST /ai/command\n(текст, контекст, дата, часовой пояс)
+SRV -> LLM : запрос со схемой ответа
+alt ответ получен
+  LLM --> SRV : {action, kind, поля}
+  SRV --> AI : структурированный ответ
+  AI -> AI : проверить формат и значения;\nдля события — конец позже начала;\nдля изменения — объект существует
+  alt ответ корректен
+    AI -> DB : история (outcome = pending)
+    AI --> UI : предложение: что и как изменится
+    UI --> U : карточка с полями
+    U -> UI : поправить поля
+    alt подтверждено
+      U -> UI : «Применить»
+      alt kind = task
+        UI -> TM : createTask / updateTask
+        TM -> DB : записать задачу
+      else kind = event
+        UI -> CM : addEvent / updateEvent
+        CM -> DB : записать событие
+      end
+      UI -> DB : история: accepted / edited
+      UI --> U : задача или событие обновлены
+    else отклонено
+      U -> UI : «Отменить»
+      UI -> DB : история: rejected
+    end
+  else ответ некорректен
+    AI --> UI : ошибка разбора
+    UI --> U : «Не удалось понять запрос,\nуточните формулировку»
+  end
+else таймаут или ошибка (после 2 повторов)
+  SRV --> AI : ошибка
+  AI --> UI : ИИ недоступен
+  UI --> U : сообщение; ручная работа доступна
+end
+@enduml

@@ -1,0 +1,44 @@
+@startuml UC-02_kalendar_ii
+!include style.iuml
+title UC-02. Календарь, учебная нагрузка и ИИ-ассистент
+left to right direction
+
+actor "Пользователь\n(студент)" as U
+actor "ОРИОКС" as OR <<внешняя система>>
+actor "Сервис языковой\nмодели (LLM API)" as LLM <<внешняя система>>
+
+rectangle "Adaptive AI Planner" {
+  package "Календарь и нагрузка" {
+    usecase "UC-13 Просмотреть календарь\n(ФТ-21, ФТ-25)" as UC13
+    usecase "UC-14 Запланировать событие\nили интервал задачи (ФТ-22)" as UC14
+    usecase "UC-15 Импортировать расписание\n(ФТ-23)" as UC15
+    usecase "Загрузить файл расписания\n(ФТ-24)" as UC15F
+    usecase "UC-16 Просмотреть учебные задания\n(ФТ-26)" as UC16
+    usecase "UC-17 Получить рекомендации\nпо нагрузке (ФТ-27–ФТ-29)" as UC17
+  }
+  package "ИИ-ассистент" {
+    usecase "UC-18 Создать или изменить задачу\nили событие через ИИ (ФТ-36, ФТ-37)" as UC18
+    usecase "UC-19 Декомпозировать цель\n(ФТ-38)" as UC19
+    usecase "UC-20 Проверить и подтвердить\nпредложение ИИ (ФТ-39, ФТ-40)" as UC20
+    usecase "UC-21 Выгрузить историю\nзапросов к ИИ (ФТ-41)" as UC21
+  }
+}
+
+U --> UC13
+U --> UC14
+U --> UC15
+U --> UC16
+U --> UC17
+U --> UC18
+U --> UC19
+U --> UC21
+
+UC15 --> OR
+UC16 --> OR
+UC15F .> UC15 : <<extend>>\n[ОРИОКС недоступен]
+UC14 .> UC13 : <<extend>>
+UC18 .> UC20 : <<include>>
+UC19 .> UC20 : <<include>>
+UC18 --> LLM
+UC19 --> LLM
+@enduml

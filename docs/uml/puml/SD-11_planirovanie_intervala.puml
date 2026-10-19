@@ -1,0 +1,38 @@
+@startuml SD-11_planirovanie_intervala
+!include seqhead.iuml
+title SD-11. Планирование интервала задачи с проверкой пересечений (ФТ-21, ФТ-22, ФТ-25)
+actor "Пользователь" as U
+box "Браузер пользователя" #F7FAFD
+participant "Календарь\n(экран)" as UI
+participant "Модуль календаря\nи расписания" as CM
+database "Хранилище\n(IndexedDB)" as DB
+end box
+
+U -> UI : перетащить задачу\nна свободное время
+UI -> CM : addEvent(task_slot, taskId,\nstart, end)
+CM -> CM : проверить: конец позже начала
+CM -> DB : задача существует?
+DB --> CM : да
+alt данные корректны
+  CM -> DB : записать интервал
+  DB --> CM : id интервала
+  CM -> DB : события, интервалы и занятия\nза отображаемую неделю
+  DB --> CM : записи
+  CM -> CM : findOverlaps()
+  CM --> UI : интервал и найденные пересечения
+  UI --> U : интервал в календаре\n(в часовом поясе профиля)
+  opt есть пересечения
+    UI --> U : пересечение подсвечено
+    alt перенести
+      U -> UI : сдвинуть интервал
+      UI -> CM : updateEvent(start, end)
+      CM -> DB : обновить интервал
+    else оставить как есть
+      U -> UI : закрыть подсказку
+    end
+  end
+else ошибка проверки
+  CM --> UI : ValidationError
+  UI --> U : «Время окончания должно\nбыть позже начала»
+end
+@enduml
