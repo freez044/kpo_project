@@ -1,6 +1,6 @@
-@startuml SD-10_nagruzka
+@startuml SD-09_nagruzka
 !include seqhead.iuml
-title SD-10. Оценка учебной нагрузки и рекомендации (ФТ-26–ФТ-29)
+title SD-09. Оценка учебной нагрузки и рекомендации (ФТ-26–ФТ-29)
 actor "Пользователь" as U
 box "Браузер пользователя" #F7FAFD
 participant "Главная страница" as UI
@@ -19,7 +19,7 @@ SRV -> OR : запрос заданий
 alt ОРИОКС доступен
   OR --> SRV : задания и сроки
   SRV --> LM : задания (JSON)
-  LM -> DB : обновить задания\nпо externalId
+  LM -> DB : upsertAssignments()\nпо externalId
 else ОРИОКС недоступен
   SRV --> LM : ошибка
   LM --> UI : «Данные ОРИОКС не обновлены»

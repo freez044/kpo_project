@@ -1,6 +1,6 @@
-@startuml SD-12_udalenie_celi
+@startuml SD-11_udalenie_celi
 !include seqhead.iuml
-title SD-12. Удаление цели (ФТ-13, НД-03)
+title SD-11. Удаление цели (ФТ-13, НД-03)
 actor "Пользователь" as U
 box "Браузер пользователя" #F7FAFD
 participant "Страница цели" as UI
@@ -9,7 +9,7 @@ database "Хранилище\n(IndexedDB)" as DB
 end box
 
 U -> UI : удалить цель
-UI -> TM : что будет удалено?
+UI -> TM : goalDeletionPreview(id)
 TM -> DB : посчитать задачи и файлы цели
 DB --> TM : 5 задач, 2 файла
 TM --> UI : состав изменений
