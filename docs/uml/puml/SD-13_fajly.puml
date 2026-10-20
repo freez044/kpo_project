@@ -1,0 +1,45 @@
+@startuml SD-13_fajly
+!include seqhead.iuml
+title SD-13. Прикрепление и скачивание файла (ФТ-33–ФТ-35, НД-02)
+actor "Пользователь" as U
+box "Браузер пользователя" #F7FAFD
+participant "Карточка задачи" as UI
+participant "Модуль файлов" as FM
+database "Хранилище\n(IndexedDB)" as DB
+end box
+
+== Прикрепление ==
+U -> UI : выбрать файл
+UI -> FM : attachFile(task, id, файл)
+FM -> FM : проверить тип и размер\n(приложение В ТЗ)
+alt файл не подходит
+  FM --> UI : ValidationError
+  UI --> U : «Недопустимый тип\nили слишком большой файл»
+else файл подходит
+  FM -> DB : задача существует?
+  DB --> FM : да
+  FM -> DB : записать файл (Blob)
+  alt место есть
+    DB --> FM : id файла
+    FM --> UI : файл прикреплён
+    UI --> U : файл в списке карточки
+  else QuotaExceededError
+    DB --> FM : нет места
+    FM --> UI : ошибка
+    UI --> U : «В браузере закончилось место»
+  end
+end
+
+== Просмотр и скачивание ==
+U -> UI : открыть карточку
+UI -> FM : filesForTaskCard(id)
+FM -> DB : файлы задачи и файлы её цели
+DB --> FM : список
+FM --> UI : список без копий
+U -> UI : скачать файл
+UI -> FM : getFile(fileId)
+FM -> DB : прочитать Blob
+DB --> FM : содержимое
+FM --> UI : файл
+UI --> U : браузер сохраняет файл
+@enduml
