@@ -1,20 +1,36 @@
-from pydantic import BaseModel, Field
-from app.statuses import TaskStatus
+from datetime import datetime
+
+from pydantic import BaseModel, Field, ConfigDict
+
+from backend.app.enums.statuses import TaskStatus
+from backend.app.enums.priority import TaskPriority
 
 class TaskCreate(BaseModel):
-    id: int
-    title: str | None = Field(min_length = 1)
-    est_duration: int | None = Field(default=None, gt=0)
-    status: TaskStatus | None = TaskStatus.IN_CREATION
+    title: str = Field(min_length = 1, max_length = 255)
+    description: str | None = Field(default = None, max_length = 2000)
 
+    status: TaskStatus
+    priority: TaskPriority
+
+    estimated_duration_minutes: int | None = Field(default=None, gt=0)
+    deadline: datetime | None = None
+    
 class TaskUpdate(BaseModel):
-    id: int
-    title: str | None = None
-    est_duration: int | None = Field(default=None, gt=0)
-    status: TaskStatus | None = TaskStatus.IN_CREATION
+    title: str | None = Field(default = None, min_length = 1, max_length = 255)
+    description: str | None = Field(default = None, max_length = 2000)
+
+    status: TaskStatus | None = None
+    priority: TaskPriority | None = None
+    
+    estimated_duration_minutes: int | None = Field(default=None, gt=0)
+    deadline: datetime | None = None
 
 class TaskRead(BaseModel):
-    id: int
     title: str
-    est_duration: int | None
-    status: TaskStatus | None = TaskStatus.IN_CREATION
+    description: str | None
+    
+    status: TaskStatus 
+    priority: TaskPriority 
+    
+    estimated_duration_minutes: int | None
+    deadline: datetime | None

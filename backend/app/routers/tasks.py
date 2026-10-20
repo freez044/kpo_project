@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.schemas.task import *
 from app.exceptions import TaskNotFoundError
-from app.statuses import TaskStatus
+from backend.app.enums.statuses import TaskStatus
 router = APIRouter(
     prefix = '/tasks',
     tags=["Tasks"]
@@ -13,7 +13,7 @@ tasks = [
         'id':1,
         'title':"Изучить FastAPI",
         'est_duration': 60,
-        'status': TaskStatus.BACKLOG
+        'status': TaskStatus.IN_CREATION
     }
 ]
 
