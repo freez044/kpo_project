@@ -1,0 +1,128 @@
+@startuml Tasks_And_Goals_Use_Case
+
+left to right direction
+
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam nodesep 35
+skinparam ranksep 45
+
+skinparam usecase {
+    BackgroundColor #F8FAFC
+    BorderColor #52677D
+    ArrowColor #52677D
+}
+
+skinparam package {
+    BorderColor #52677D
+    FontColor #263746
+}
+
+skinparam actor {
+    BorderColor #52677D
+    FontColor #263746
+}
+
+actor "Пользователь" as User
+actor "Внешний API\nязыковой модели" as LLM
+
+rectangle "Adaptive AI Planner" {
+
+    package "Управление задачами" {
+
+        usecase "Создать задачу" as CreateTask
+        usecase "Просмотреть список задач" as ViewTasks
+        usecase "Просмотреть карточку задачи" as ViewTask
+        usecase "Изменить задачу" as EditTask
+        usecase "Удалить задачу" as DeleteTask
+
+        usecase "Изменить статус задачи" as ChangeStatus
+        usecase "Установить или изменить приоритет" as SetPriority
+        usecase "Установить или изменить дедлайн" as SetDeadline
+
+        usecase "Связать задачу с целью" as LinkGoal
+        usecase "Удалить связь задачи с целью" as UnlinkGoal
+    }
+
+    package "Управление целями" {
+
+        usecase "Создать цель" as CreateGoal
+        usecase "Просмотреть список целей" as ViewGoals
+        usecase "Просмотреть карточку цели" as ViewGoal
+        usecase "Изменить цель" as EditGoal
+        usecase "Удалить цель" as DeleteGoal
+
+        usecase "Добавить задачу в цель" as AddTaskToGoal
+        usecase "Удалить задачу из цели" as RemoveTaskFromGoal
+
+        usecase "Просмотреть прогресс цели" as ViewGoalProgress
+
+        usecase "Декомпозировать цель на задачи" as DecomposeGoal
+    }
+}
+
+' ==========================================
+' Пользователь — управление задачами
+' ==========================================
+
+User --> CreateTask
+User --> ViewTasks
+User --> ViewTask
+User --> EditTask
+User --> DeleteTask
+
+User --> ChangeStatus
+User --> SetPriority
+User --> SetDeadline
+
+User --> LinkGoal
+User --> UnlinkGoal
+
+' ==========================================
+' Пользователь — управление целями
+' ==========================================
+
+User --> CreateGoal
+User --> ViewGoals
+User --> ViewGoal
+User --> EditGoal
+User --> DeleteGoal
+
+User --> AddTaskToGoal
+User --> RemoveTaskFromGoal
+
+User --> ViewGoalProgress
+User --> DecomposeGoal
+
+' ==========================================
+' Связи между задачами и целями
+' ==========================================
+
+AddTaskToGoal ..> LinkGoal : <<include>>
+RemoveTaskFromGoal ..> UnlinkGoal : <<include>>
+
+' ==========================================
+' Взаимодействие с ИИ
+' ==========================================
+
+LLM --> DecomposeGoal
+
+note right of DeleteGoal
+  При удалении цели
+  связанные задачи
+  сохраняются и могут
+  существовать отдельно.
+end note
+
+note bottom of DecomposeGoal
+  ИИ предлагает набор задач.
+  Пользователь проверяет
+  и подтверждает предложение.
+  Подробный сценарий показан
+  на диаграмме ИИ-ассистента.
+end note
+
+@enduml

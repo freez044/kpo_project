@@ -1,0 +1,116 @@
+@startuml Workspace_Use_Case
+
+left to right direction
+
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+
+' Расстояния между элементами
+skinparam nodesep 60
+skinparam ranksep 70
+skinparam padding 10
+
+skinparam usecase {
+    BackgroundColor #F8FAFC
+    BorderColor #52677D
+    ArrowColor #52677D
+}
+
+skinparam package {
+    BorderColor #52677D
+    FontColor #263746
+}
+
+skinparam actor {
+    BorderColor #52677D
+    FontColor #263746
+}
+
+actor "Пользователь" as User
+
+rectangle "Adaptive AI Planner" {
+
+    package "Главная панель" {
+        usecase "Просмотреть главную панель" as Dashboard
+        usecase "Просмотреть сводку\nпо задачам и целям" as Summary
+        usecase "Просмотреть ближайшие\nдедлайны" as Deadlines
+    }
+
+    package "Kanban-доска" {
+        usecase "Открыть Kanban-доску" as OpenKanban
+        usecase "Просмотреть задачи\nна доске" as ViewKanbanTasks
+        usecase "Переместить задачу\nмежду колонками" as MoveTask
+    }
+
+    package "Горизонт планирования" {
+        usecase "Настроить горизонт\nпланирования" as ConfigureHorizon
+        usecase "Отобразить задачи\nв пределах горизонта" as ViewHorizonTasks
+    }
+
+    package "Категории" {
+        usecase "Просмотреть категории" as ViewCategories
+        usecase "Создать категорию" as CreateCategory
+        usecase "Изменить категорию" as EditCategory
+        usecase "Удалить категорию" as DeleteCategory
+        usecase "Назначить категорию задаче" as AssignCategory
+        usecase "Снять категорию с задачи" as RemoveCategory
+    }
+
+    package "Файлы" {
+        usecase "Прикрепить файл к задаче" as AttachFile
+        usecase "Просмотреть прикреплённые файлы" as ViewFiles
+        usecase "Удалить прикреплённый файл" as DeleteFile
+    }
+}
+
+' ==========================================
+' Главная панель
+' ==========================================
+
+User --> Dashboard
+User --> Summary
+User --> Deadlines
+
+Dashboard ..> Summary : <<include>>
+Dashboard ..> Deadlines : <<include>>
+
+' ==========================================
+' Kanban-доска
+' ==========================================
+
+User --> OpenKanban
+User --> ViewKanbanTasks
+User --> MoveTask
+
+OpenKanban ..> ViewKanbanTasks : <<include>>
+OpenKanban ..> ViewHorizonTasks : <<include>>
+
+' ==========================================
+' Горизонт планирования
+' ==========================================
+
+User --> ConfigureHorizon
+
+' ==========================================
+' Категории
+' ==========================================
+
+User --> ViewCategories
+User --> CreateCategory
+User --> EditCategory
+User --> DeleteCategory
+User --> AssignCategory
+User --> RemoveCategory
+
+' ==========================================
+' Файлы
+' ==========================================
+
+User --> AttachFile
+User --> ViewFiles
+User --> DeleteFile
+
+@enduml

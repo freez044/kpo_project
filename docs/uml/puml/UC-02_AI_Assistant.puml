@@ -1,0 +1,98 @@
+@startuml AI_Assistant_Use_Case
+
+left to right direction
+
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam nodesep 35
+skinparam ranksep 45
+
+skinparam usecase {
+    BackgroundColor #F8FAFC
+    BorderColor #52677D
+    ArrowColor #52677D
+}
+
+skinparam package {
+    BorderColor #52677D
+    FontColor #263746
+}
+
+skinparam actor {
+    BorderColor #52677D
+    FontColor #263746
+}
+
+actor "Пользователь" as User
+actor "Внешний API\nязыковой модели" as LLM
+
+rectangle "Adaptive AI Planner" {
+
+    package "Обработка запросов" {
+        usecase "Отправить текстовый запрос" as SendPrompt
+        usecase "Создать задачу по запросу" as CreateTask
+        usecase "Изменить задачу по запросу" as EditTask
+        usecase "Создать личное событие\nпо запросу" as CreateEvent
+        usecase "Изменить личное событие\nпо запросу" as EditEvent
+        usecase "Декомпозировать цель\nна задачи" as DecomposeGoal
+        usecase "Получить предложение ИИ" as GetProposal
+    }
+
+    package "Работа с предложением" {
+        usecase "Просмотреть предложение ИИ" as ViewProposal
+        usecase "Изменить предложенные задачи" as EditProposal
+        usecase "Добавить задачу\nв предложение" as AddProposedTask
+        usecase "Удалить задачу\nиз предложения" as RemoveProposedTask
+        usecase "Подтвердить предложение ИИ" as ConfirmProposal
+        usecase "Отклонить предложение ИИ" as RejectProposal
+    }
+
+    package "Обработка ошибок" {
+        usecase "Обработать ошибку API ИИ" as HandleError
+    }
+}
+
+' Пользователь
+User --> SendPrompt
+User --> CreateTask
+User --> EditTask
+User --> CreateEvent
+User --> EditEvent
+User --> DecomposeGoal
+
+User --> ViewProposal
+User --> EditProposal
+User --> AddProposedTask
+User --> RemoveProposedTask
+User --> ConfirmProposal
+User --> RejectProposal
+
+' Внешняя языковая модель
+LLM --> GetProposal
+
+' Обработка запросов
+CreateTask ..> SendPrompt : <<include>>
+EditTask ..> SendPrompt : <<include>>
+CreateEvent ..> SendPrompt : <<include>>
+EditEvent ..> SendPrompt : <<include>>
+DecomposeGoal ..> SendPrompt : <<include>>
+
+SendPrompt ..> GetProposal : <<include>>
+GetProposal ..> ViewProposal : <<include>>
+
+' Редактирование предложения
+EditProposal ..> ViewProposal : <<extend>>
+AddProposedTask ..> EditProposal : <<extend>>
+RemoveProposedTask ..> EditProposal : <<extend>>
+
+' Завершение работы с предложением
+ConfirmProposal ..> ViewProposal : <<extend>>
+RejectProposal ..> ViewProposal : <<extend>>
+
+' Ошибки внешнего API
+HandleError ..> GetProposal : <<extend>>
+
+@enduml

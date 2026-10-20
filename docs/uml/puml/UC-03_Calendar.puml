@@ -1,0 +1,83 @@
+@startuml Calendar_Use_Case
+
+left to right direction
+
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam nodesep 35
+skinparam ranksep 45
+
+skinparam usecase {
+    BackgroundColor #F8FAFC
+    BorderColor #52677D
+    ArrowColor #52677D
+}
+
+skinparam package {
+    BorderColor #52677D
+    FontColor #263746
+}
+
+skinparam actor {
+    BorderColor #52677D
+    FontColor #263746
+}
+
+actor "Пользователь" as User
+actor "ОРИОКС" as Orioks
+
+rectangle "Adaptive AI Planner" {
+
+    package "Просмотр календаря" {
+        usecase "Просмотреть календарь" as ViewCalendar
+        usecase "Переключить режим дня или недели" as ChangeView
+    }
+
+    package "Личные события" {
+        usecase "Создать личное событие" as CreateEvent
+        usecase "Изменить личное событие" as EditEvent
+        usecase "Удалить личное событие" as DeleteEvent
+    }
+
+    package "Планирование задач" {
+        usecase "Запланировать задачу в календаре" as ScheduleTask
+        usecase "Изменить время запланированной задачи" as EditScheduledTask
+        usecase "Удалить задачу из календаря" as RemoveScheduledTask
+        usecase "Проверить временные конфликты" as CheckConflicts
+    }
+
+    package "Учебное расписание" {
+        usecase "Просмотреть учебное расписание" as ViewLessons
+        usecase "Загрузить файл учебного расписания" as UploadSchedule
+    }
+}
+
+' Просмотр календаря
+User --> ViewCalendar
+User --> ChangeView
+
+' Личные события
+User --> CreateEvent
+User --> EditEvent
+User --> DeleteEvent
+
+' Планирование задач
+User --> ScheduleTask
+User --> EditScheduledTask
+User --> RemoveScheduledTask
+User --> CheckConflicts
+
+' Учебное расписание
+User --> ViewLessons
+User --> UploadSchedule
+
+Orioks --> ViewLessons
+
+' Проверка конфликтов
+ScheduleTask ..> CheckConflicts : <<include>>
+EditScheduledTask ..> CheckConflicts : <<include>>
+
+@enduml

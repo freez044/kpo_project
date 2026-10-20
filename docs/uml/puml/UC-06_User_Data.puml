@@ -1,0 +1,92 @@
+@startuml Accounts_Admin_Use_Case
+
+title Учётные записи и администрирование
+
+left to right direction
+
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+
+skinparam nodesep 60
+skinparam ranksep 70
+skinparam padding 10
+
+skinparam usecase {
+    BackgroundColor #F8FAFC
+    BorderColor #52677D
+    ArrowColor #52677D
+}
+
+skinparam package {
+    BorderColor #52677D
+    FontColor #263746
+}
+
+skinparam actor {
+    BorderColor #52677D
+    FontColor #263746
+}
+
+actor "Пользователь" as User
+actor "Администратор" as Admin
+
+rectangle "Adaptive AI Planner" {
+
+    package "Учётная запись" {
+        usecase "Зарегистрироваться" as Register
+        usecase "Войти в систему" as Login
+        usecase "Выйти из системы" as Logout
+        usecase "Просмотреть профиль" as ViewProfile
+        usecase "Изменить данные профиля" as EditProfile
+        usecase "Изменить пароль" as ChangePassword
+    }
+
+    package "Администрирование" {
+        usecase "Просмотреть список пользователей" as ViewUsers
+        usecase "Просмотреть данные пользователя" as ViewUser
+        usecase "Управлять учётными записями" as ManageUsers
+        usecase "Заблокировать учётную запись" as BlockUser
+        usecase "Разблокировать учётную запись" as UnblockUser
+
+        usecase "Загрузить Excel-файл\nс расписанием учебных групп" as UploadSchedule
+    }
+}
+
+' ==========================================
+' Учётная запись пользователя
+' ==========================================
+
+User -- Register
+User -- Login
+User -- Logout
+User -- ViewProfile
+User -- EditProfile
+User -- ChangePassword
+
+' ==========================================
+' Администрирование
+' ==========================================
+
+Admin -- ViewUsers
+Admin -- ViewUser
+Admin -- ManageUsers
+Admin -- BlockUser
+Admin -- UnblockUser
+Admin -- UploadSchedule
+
+ManageUsers ..> ViewUsers : <<include>>
+
+note right of UploadSchedule
+  Администратор заранее загружает
+  Excel-файл с расписанием
+  всех учебных групп.
+
+  Файл используется как резервный
+  источник расписания при
+  недоступности ОРИОКС.
+end note
+
+@enduml

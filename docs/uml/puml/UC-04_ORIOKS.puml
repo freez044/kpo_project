@@ -1,0 +1,102 @@
+@startuml Orioks_Use_Case
+
+left to right direction
+
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+
+skinparam nodesep 60
+skinparam ranksep 70
+skinparam padding 10
+
+skinparam usecase {
+    BackgroundColor #F8FAFC
+    BorderColor #52677D
+    ArrowColor #52677D
+}
+
+skinparam package {
+    BorderColor #52677D
+    FontColor #263746
+}
+
+skinparam actor {
+    BorderColor #52677D
+    FontColor #263746
+}
+
+actor "ОРИОКС" as Orioks
+actor "Планировщик задач\nсистемы" as Scheduler
+actor "Администратор" as Admin
+
+rectangle "Adaptive AI Planner" {
+
+    package "Получение учебных данных" {
+
+        usecase "Получить учебное расписание" as GetLessons
+
+        usecase "Импортировать учебные задания" as ImportAssignments
+
+        usecase "Получить дедлайны заданий" as GetDeadlines
+    }
+
+    package "Обновление данных" {
+
+        usecase "Обновить импортированные задания" as UpdateAssignments
+
+        usecase "Предотвратить дублирование заданий" as PreventDuplicates
+    }
+
+    package "Резервное расписание" {
+
+        usecase "Загрузить Excel-файл\nс расписанием групп" as UploadSchedule
+
+        usecase "Прочитать расписание\nиз Excel-файла" as ReadSchedule
+
+        usecase "Использовать резервное\nрасписание при недоступности ОРИОКС" as UseBackup
+    }
+
+    package "Обработка ошибок" {
+
+        usecase "Обработать недоступность ОРИОКС" as HandleError
+    }
+}
+
+' ==========================================
+' Взаимодействие с ОРИОКС
+' ==========================================
+
+Orioks --> GetLessons
+Orioks --> ImportAssignments
+Orioks --> GetDeadlines
+Orioks --> UpdateAssignments
+
+' ==========================================
+' Автоматический запуск операций
+' ==========================================
+
+Scheduler --> GetLessons
+Scheduler --> ImportAssignments
+Scheduler --> UpdateAssignments
+
+' ==========================================
+' Импорт и обновление заданий
+' ==========================================
+
+ImportAssignments ..> GetDeadlines : <<include>>
+ImportAssignments ..> PreventDuplicates : <<include>>
+UpdateAssignments ..> PreventDuplicates : <<include>>
+
+' ==========================================
+' Резервное расписание
+' ==========================================
+
+Admin --> UploadSchedule
+
+UseBackup ..> HandleError : <<extend>>
+UseBackup ..> ReadSchedule : <<include>>
+
+@enduml
