@@ -1,6 +1,6 @@
-@startuml SD-13_fajly
+@startuml SD-12_fajly
 !include seqhead.iuml
-title SD-13. Прикрепление и скачивание файла (ФТ-33–ФТ-35, НД-02)
+title SD-12. Прикрепление и скачивание файла (ФТ-32–ФТ-34, НД-02)
 actor "Пользователь" as U
 box "Браузер пользователя" #F7FAFD
 participant "Карточка задачи" as UI
@@ -10,7 +10,7 @@ end box
 
 == Прикрепление ==
 U -> UI : выбрать файл
-UI -> FM : attachFile(task, id, файл)
+UI -> FM : attachFile({taskId}, файл)
 FM -> FM : проверить тип и размер\n(приложение В ТЗ)
 alt файл не подходит
   FM --> UI : ValidationError

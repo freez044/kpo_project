@@ -1,6 +1,6 @@
-@startuml SD-09_zapros_k_ii
+@startuml SD-08_zapros_k_ii
 !include seqhead.iuml
-title SD-09. Создание или изменение задачи либо события по текстовому запросу к ИИ (ФТ-36, ФТ-37, ФТ-39–ФТ-41)
+title SD-08. Создание или изменение задачи либо события по текстовому запросу к ИИ (ФТ-35, ФТ-36, ФТ-38–ФТ-40)
 actor "Пользователь" as U
 box "Браузер пользователя" #F7FAFD
 participant "ИИ-ассистент\n(экран)" as UI
@@ -25,7 +25,7 @@ alt ответ получен
   SRV --> AI : структурированный ответ
   AI -> AI : проверить формат и значения;\nдля события — конец позже начала;\nдля изменения — объект существует
   alt ответ корректен
-    AI -> DB : история (outcome = pending)
+    AI -> DB : saveProposal()\n(status = PENDING)
     AI --> UI : предложение: что и как изменится
     UI --> U : карточка с полями
     U -> UI : поправить поля
@@ -35,14 +35,16 @@ alt ответ получен
         UI -> TM : createTask / updateTask
         TM -> DB : записать задачу
       else kind = event
-        UI -> CM : addEvent / updateEvent
+        UI -> CM : addCalendarEvent /\nmoveCalendarItem
         CM -> DB : записать событие
       end
-      UI -> DB : история: accepted / edited
+      UI -> AI : confirmProposal(id)
+      AI -> DB : предложение:\nACCEPTED / EDITED
       UI --> U : задача или событие обновлены
     else отклонено
       U -> UI : «Отменить»
-      UI -> DB : история: rejected
+      UI -> AI : rejectProposal(id)
+      AI -> DB : предложение: REJECTED
     end
   else ответ некорректен
     AI --> UI : ошибка разбора

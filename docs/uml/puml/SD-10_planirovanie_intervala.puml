@@ -1,6 +1,6 @@
-@startuml SD-11_planirovanie_intervala
+@startuml SD-10_planirovanie_intervala
 !include seqhead.iuml
-title SD-11. Планирование интервала задачи с проверкой пересечений (ФТ-21, ФТ-22, ФТ-25)
+title SD-10. Планирование интервала задачи с проверкой пересечений (ФТ-21, ФТ-22, ФТ-25)
 actor "Пользователь" as U
 box "Браузер пользователя" #F7FAFD
 participant "Календарь\n(экран)" as UI
@@ -9,7 +9,7 @@ database "Хранилище\n(IndexedDB)" as DB
 end box
 
 U -> UI : перетащить задачу\nна свободное время
-UI -> CM : addEvent(task_slot, taskId,\nstart, end)
+UI -> CM : addScheduleItem(taskId,\nstartAt, endAt)
 CM -> CM : проверить: конец позже начала
 CM -> DB : задача существует?
 DB --> CM : да
@@ -25,7 +25,7 @@ alt данные корректны
     UI --> U : пересечение подсвечено
     alt перенести
       U -> UI : сдвинуть интервал
-      UI -> CM : updateEvent(start, end)
+      UI -> CM : moveCalendarItem(id,\nstartAt, endAt)
       CM -> DB : обновить интервал
     else оставить как есть
       U -> UI : закрыть подсказку
