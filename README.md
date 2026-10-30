@@ -154,6 +154,8 @@ Backend проверен 20 октября 2026 года в отдельном �
 ## Документация
 
 - [Техническое задание v12](docs/ТЗ_Adaptive_AI_Planner_v12.docx)
+- [Контракты: REST API, ошибки, ИИ-модуль, ОРИОКС](docs/contracts.md)
+- [Памятка для Claude Code](CLAUDE.md)
 - [Модель данных v2.0](database/data_model.md) ([Word](database/Модель_данных_Adaptive_AI_Planner_v2.docx))
 - [Описание локального хранилища](docs/storage/README.md)
 - [Модуль IndexedDB](docs/storage/db.ts)
