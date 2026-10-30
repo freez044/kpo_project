@@ -1,0 +1,120 @@
+@startuml CL-02_servisy
+!include style.iuml
+skinparam ClassBackgroundColor #EEF4FB
+skinparam ClassBorderColor #4A6FA5
+skinparam ClassHeaderBackgroundColor #DCE7F5
+skinparam StereotypeCBackgroundColor #C9DBF0
+skinparam StereotypeIBackgroundColor #D9EAD3
+skinparam ClassAttributeIconSize 0
+hide empty members
+left to right direction
+title CL-02. Диаграмма классов: сервисы серверной части (ТЗ v12)
+
+package "Сущности (поля — на CL-01)" as ENT {
+  class User
+  class Session
+  class OrioksConnection
+  class Category
+  class Goal
+  class Task
+  class FileAttachment
+  abstract class CalendarItem
+  class AcademicLesson
+  class AcademicAssignment
+  class AIProposal
+}
+
+package "Сервисы серверной части" as LOGIC {
+  class AccountService {
+    +register(data): User
+    +login(email, password, userAgent): Tokens
+    +refresh(refreshToken): Tokens
+    +logout(sessionId): void
+    +updateProfile(userId, data): User
+    +changePassword(userId, old, new): void
+    +exportData(userId): Archive
+    +deleteAccount(userId, password): void
+  }
+  class CategoryService {
+    +list(userId): List<Category>
+    +create(userId, data): Category
+    +update(userId, id, data): Category
+    +delete(userId, id): void
+  }
+  class GoalService {
+    +list(userId, status): List<Goal>
+    +get(userId, id): Goal
+    +create(userId, data): Goal
+    +update(userId, id, data): Goal
+    +delete(userId, id): void
+    +deletionPreview(userId, id): Preview
+    +getProgress(userId, id): Progress
+  }
+  class TaskService {
+    +list(userId, filters): List<Task>
+    +get(userId, id): Task
+    +create(userId, data): Task
+    +update(userId, id, data): Task
+    +changeStatus(userId, id, status): Task
+    +delete(userId, id): void
+    +deletionPreview(userId, id): Preview
+  }
+  class CalendarService {
+    +getCalendar(userId, from, to): List<CalendarItem>
+    +findOverlaps(userId, from, to): List<Overlap>
+    +createEvent(userId, data): CalendarEvent
+    +updateEvent(userId, id, data): CalendarEvent
+    +deleteEvent(userId, id): void
+    +createScheduleItem(userId, data): ScheduleItem
+    +updateScheduleItem(userId, id, data): ScheduleItem
+    +deleteScheduleItem(userId, id): void
+  }
+  class FileService {
+    +attach(userId, owner, file): FileAttachment
+    +download(userId, id): FileContent
+    +delete(userId, id): void
+    +purgeDeleted(): void
+  }
+  class PlanningService {
+    +getDashboard(userId): Dashboard
+    +getWorkload(userId, from, weeks): List<WeekLoad>
+    +getOfflineSnapshot(userId, days): Snapshot
+  }
+  class OrioksService {
+    +connect(userId, login, password): OrioksConnection
+    +disconnect(userId): void
+    +sync(userId): SyncResult
+    +importScheduleFile(userId, file): int
+  }
+  class AIService {
+    +decomposeGoal(userId, goalId): AIProposal
+    +interpretCommand(userId, text): AIProposal
+    +applyProposal(userId, id, finalData): List
+    +rejectProposal(userId, id): void
+    +listHistory(userId): List<AIProposal>
+    +exportHistory(userId): JSON
+  }
+  interface LLMAdapter {
+    +decompose(goal, context): DecomposeResult
+    +command(text, context): CommandResult
+  }
+}
+
+AccountService ..> User : управляет
+AccountService ..> Session : управляет
+CategoryService ..> Category : управляет
+GoalService ..> Goal : управляет
+GoalService ..> Task : прогресс
+TaskService ..> Task : управляет
+CalendarService ..> CalendarItem : управляет
+FileService ..> FileAttachment : управляет
+PlanningService ..> Task : анализирует
+PlanningService ..> AcademicAssignment : анализирует
+OrioksService ..> OrioksConnection : управляет
+OrioksService ..> AcademicLesson : импортирует
+OrioksService ..> AcademicAssignment : импортирует
+AIService ..> AIProposal : формирует
+AIService ..> LLMAdapter : использует
+
+
+@enduml

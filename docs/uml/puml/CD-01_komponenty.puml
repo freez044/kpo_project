@@ -1,39 +1,45 @@
 @startuml CD-01_komponenty
 !include style.iuml
-title CD-01. Диаграмма компонентов Adaptive AI Planner
+title CD-01. Диаграмма компонентов Adaptive AI Planner (ТЗ v12)
 skinparam componentStyle uml2
 left to right direction
 
 actor "Пользователь" as U
 
-node "Браузер пользователя" {
+node "Браузер на компьютере, планшете или телефоне" {
   package "Веб-интерфейс (React + TypeScript)" as UIPKG {
+    [Вход и регистрация] as SCR_AUTH
     [Главная страница] as SCR_HOME
     [Канбан-доска] as SCR_KANBAN
     [Цели] as SCR_GOALS
     [Календарь] as SCR_CAL
     [ИИ-ассистент] as SCR_AI
-    [Профиль и данные] as SCR_PROF
+    [Профиль и ОРИОКС] as SCR_PROF
   }
-  package "Модули логики" as LOGIC {
-    [Задачи и цели\n(ФТ-06–ФТ-16, ФТ-30, ФТ-31)] as M_TASK
-    [Календарь и расписание\n(ФТ-21–ФТ-25)] as M_CAL
-    [Контроль нагрузки\n(ФТ-26–ФТ-29)] as M_LOAD
-    [Файлы\n(ФТ-32–ФТ-34)] as M_FILE
-    [Модуль ИИ\n(ФТ-35–ФТ-40)] as M_AI
-    [Профиль и резервная копия\n(ФТ-01–ФТ-05)] as M_PROF
-    [API-клиент] as M_API
-  }
-  [Слой доступа к данным\n(Dexie, db.ts)] as DAL
-  database "IndexedDB" as IDB
+  [API-клиент\n(токены, ошибки)] as M_API
+  database "Копия для просмотра без сети\n(IndexedDB, ФТ-42)" as IDB
 }
 
 node "Сервер" {
   package "Серверная часть (FastAPI)" as SRV {
-    [REST API\n(OpenAPI)] as REST
-    [Адаптер языковой модели] as A_LLM
-    [Адаптер ОРИОКС] as A_OR
+    [REST API /api/v1\n(OpenAPI, проверка прав)] as REST
+    package "Сервисы" as SVC {
+      [AccountService\n(ФТ-01, 03, 05, 41)] as S_ACC
+      [CategoryService\n(ФТ-14–16)] as S_CAT
+      [GoalService\n(ФТ-10–13)] as S_GOAL
+      [TaskService\n(ФТ-06–09, 17–19, 30, 31)] as S_TASK
+      [CalendarService\n(ФТ-21, 22, 25)] as S_CAL
+      [FileService\n(ФТ-32–34)] as S_FILE
+      [PlanningService\n(ФТ-20, 26–29, 42)] as S_PLAN
+      [OrioksService\n(ФТ-23, 24, 43)] as S_OR
+      [AIService\n(ФТ-35–40)] as S_AI
+    }
+    [Слой данных\n(SQLAlchemy, Alembic)] as DAL
+    [LLMAdapter\n(заменяемый)] as A_LLM
+    [Клиент ОРИОКС] as A_OR
   }
+  database "PostgreSQL" as PG
+  folder "Файловое хранилище" as FS
 }
 
 cloud "Внешние сервисы" {
@@ -42,32 +48,16 @@ cloud "Внешние сервисы" {
 }
 
 U --> UIPKG
-
-SCR_HOME ..> M_TASK
-SCR_HOME ..> M_LOAD
-SCR_KANBAN ..> M_TASK
-SCR_KANBAN ..> M_FILE
-SCR_GOALS ..> M_TASK
-SCR_GOALS ..> M_AI
-SCR_GOALS ..> M_FILE
-SCR_CAL ..> M_CAL
-SCR_AI ..> M_AI
-SCR_PROF ..> M_PROF
-
-M_TASK --> DAL
-M_CAL --> DAL
-M_LOAD --> DAL
-M_FILE --> DAL
-M_AI --> DAL
-M_PROF --> DAL
-DAL --> IDB
-
-M_AI --> M_API
-M_CAL --> M_API
-M_LOAD --> M_API
+UIPKG ..> M_API
+M_API ..> IDB : копия канбан-доски\nи календаря
 M_API --> REST : HTTPS, JSON
-REST --> A_LLM
-REST --> A_OR
+
+REST --> SVC
+SVC --> DAL
+DAL --> PG
+S_FILE --> FS
+S_AI --> A_LLM
+S_OR --> A_OR
 A_LLM --> LLM : ключ API\nтолько на сервере
-A_OR --> OR
+A_OR --> OR : ключ доступа\nв зашифрованном виде
 @enduml

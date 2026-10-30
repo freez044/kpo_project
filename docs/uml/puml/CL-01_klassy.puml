@@ -1,47 +1,6 @@
 @startuml CL-01_klassy
 !include style.iuml
 !include CL-01_entities.iuml
-title CL-01. Диаграмма классов Adaptive AI Planner
+title CL-01. Диаграмма классов: сущности Adaptive AI Planner (ТЗ v12)
 
-package "Бизнес-логика" as LOGIC {
-  class TaskService {
-    +createTask(data): Task
-    +updateTask(id, data): Task
-    +deleteTask(id): void
-    +getTasks(): List
-  }
-  class GoalService {
-    +createGoal(data): Goal
-    +updateGoal(id, data): Goal
-    +deleteGoal(id): void
-    +getProgress(goalId): float
-  }
-  class CalendarService {
-    +getCalendar(start, end): List
-    +checkConflicts(): List
-  }
-  class PlanningService {
-    +analyzeWorkload(): List
-    +findUpcomingDeadlines(): List
-    +generateRecommendations(): List
-  }
-  class AIService {
-    +interpretRequest(text): AIProposal
-    +decomposeGoal(goal): AIProposal
-  }
-  class OrioksService {
-    +syncSchedule(): List<AcademicLesson>
-    +syncAssignments(): List<AcademicAssignment>
-  }
-}
-
-TaskService ..> Task : управляет
-GoalService ..> Goal : управляет
-GoalService ..> Task : прогресс
-CalendarService ..> CalendarItem : управляет
-PlanningService ..> Task : анализирует
-PlanningService ..> AcademicAssignment : анализирует
-AIService ..> AIProposal : формирует
-OrioksService ..> AcademicLesson : импортирует
-OrioksService ..> AcademicAssignment : импортирует
 @enduml

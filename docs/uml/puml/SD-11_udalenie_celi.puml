@@ -2,32 +2,43 @@
 !include seqhead.iuml
 title SD-11. Удаление цели (ФТ-13, НД-03)
 actor "Пользователь" as U
-box "Браузер пользователя" #F7FAFD
+box "Браузер" #F7FAFD
 participant "Страница цели" as UI
-participant "Модуль задач\nи целей" as TM
-database "Хранилище\n(IndexedDB)" as DB
+end box
+box "Сервер" #FBF7F2
+participant "REST API" as API
+participant "GoalService" as GS
+database "PostgreSQL" as DB
 end box
 
 U -> UI : удалить цель
-UI -> TM : goalDeletionPreview(id)
-TM -> DB : посчитать задачи и файлы цели
-DB --> TM : 5 задач, 2 файла
-TM --> UI : состав изменений
+UI -> API : GET /goals/{id}/deletion-preview
+API -> GS : deletionPreview(userId, id)
+GS -> DB : goal_deletion_preview()
+DB --> GS : задач: 5, файлов: 2
+API --> UI : 200, состав изменений
 UI --> U : «Задачи (5) останутся без цели,\nфайлы цели (2) будут удалены»
 alt подтверждено
   U -> UI : «Удалить цель»
-  UI -> TM : deleteGoal(id)
+  UI -> API : DELETE /goals/{id}
+  API -> GS : delete(userId, id)
   group транзакция
-    TM -> DB : у задач цели убрать\ngoalId и порядок
-    TM -> DB : удалить файлы цели
-    TM -> DB : удалить цель
+    GS -> DB : DELETE goals
+    note right of DB
+      задачи: goalId = NULL,
+      триггер очищает sortOrder;
+      история ИИ: goalId = NULL;
+      файлы цели удаляются,
+      их ключи — в очередь удаления
+    end note
   end
   alt успешно
-    DB --> TM : ok
-    TM --> UI : цель удалена
+    DB --> GS : ok
+    API --> UI : 204
     UI --> U : список целей; задачи\nостались на канбан-доске
   else ошибка
-    DB --> TM : изменения отменены
+    DB --> GS : изменения отменены
+    API --> UI : 500 INTERNAL_ERROR
     UI --> U : «Не удалось удалить цель»
   end
 else отмена

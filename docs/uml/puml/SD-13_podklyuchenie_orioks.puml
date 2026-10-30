@@ -1,0 +1,49 @@
+@startuml SD-13_podklyuchenie_orioks
+!include seqhead.iuml
+title SD-13. Подключение ОРИОКС (ФТ-43)
+actor "Пользователь" as U
+box "Браузер" #F7FAFD
+participant "Профиль" as UI
+end box
+box "Сервер" #FBF7F2
+participant "REST API" as API
+participant "OrioksService" as OS
+database "PostgreSQL" as DB
+end box
+participant "ОРИОКС" as OR
+
+== Подключение ==
+U -> UI : логин и пароль ОРИОКС
+UI -> API : POST /orioks/connection
+API -> OS : connect(userId, логин, пароль)
+OS -> OR : GET /api/v1/auth (логин и пароль)
+alt неверный логин или пароль
+  OR --> OS : 401
+  API --> UI : 400 ORIOKS_AUTH_FAILED
+  UI --> U : «Неверный логин или пароль ОРИОКС»
+else у студента уже 8 ключей доступа
+  OR --> OS : 403
+  API --> UI : 409 ORIOKS_TOKEN_LIMIT
+  UI --> U : «Отзовите лишние ключи в ОРИОКС»
+else ключ получен
+  OR --> OS : ключ доступа
+  OS -> OR : данные студента (группа),\nсписок групп, даты семестра
+  OR --> OS : группа, groupId, начало семестра
+  OS -> OS : зашифровать ключ (AES-GCM)
+  group транзакция
+    OS -> DB : INSERT orioks_connections\n(ключ, groupId, semesterStart)
+    OS -> DB : UPDATE users SET studyGroup\n= группа из ОРИОКС
+  end
+  API --> UI : 201, ОРИОКС подключён
+  UI --> U : «ОРИОКС подключён»
+  note over UI : затем — первое обновление\nрасписания и заданий (SD-06, SD-09)
+end
+note right of OS : пароль ОРИОКС нигде\nне сохраняется
+
+== Отключение ==
+U -> UI : «Отключить ОРИОКС»
+UI -> API : DELETE /orioks/connection
+API -> OS : disconnect(userId)
+OS -> DB : DELETE orioks_connections
+API --> UI : 204
+@enduml
