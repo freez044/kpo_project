@@ -2,57 +2,58 @@
 !include seqhead.iuml
 title SD-08. Создание или изменение задачи либо события по текстовому запросу к ИИ (ФТ-35, ФТ-36, ФТ-38–ФТ-40)
 actor "Пользователь" as U
-box "Браузер пользователя" #F7FAFD
+box "Браузер" #F7FAFD
 participant "ИИ-ассистент\n(экран)" as UI
-participant "Модуль ИИ" as AI
-participant "Модуль задач\nи целей" as TM
-participant "Модуль календаря" as CM
-database "Хранилище\n(IndexedDB)" as DB
 end box
 box "Сервер" #FBF7F2
-participant "Серверная часть\n(FastAPI)" as SRV
+participant "REST API" as API
+participant "AIService" as AI
+participant "LLMAdapter" as AD
+database "PostgreSQL" as DB
 end box
 participant "LLM API" as LLM
 
 U -> UI : «Перенеси встречу с научруком\nна пятницу 15:00»
-UI -> AI : command(текст)
-AI -> DB : названия целей, категорий,\nближайших задач и событий
+UI -> API : POST /ai/command {text}
+API -> AI : interpretCommand(userId, текст)
+AI -> DB : названия и сроки целей, категорий,\nзадач и событий на 14 дней вперёд
 DB --> AI : контекст
-AI -> SRV : POST /ai/command\n(текст, контекст, дата, часовой пояс)
-SRV -> LLM : запрос со схемой ответа
-alt ответ получен
-  LLM --> SRV : {action, kind, поля}
-  SRV --> AI : структурированный ответ
-  AI -> AI : проверить формат и значения;\nдля события — конец позже начала;\nдля изменения — объект существует
-  alt ответ корректен
-    AI -> DB : saveProposal()\n(status = PENDING)
-    AI --> UI : предложение: что и как изменится
-    UI --> U : карточка с полями
-    U -> UI : поправить поля
-    alt подтверждено
-      U -> UI : «Применить»
-      alt kind = task
-        UI -> TM : createTask / updateTask
-        TM -> DB : записать задачу
-      else kind = event
-        UI -> CM : addCalendarEvent /\nmoveCalendarItem
-        CM -> DB : записать событие
+AI -> AI : заменить id короткими метками\n(g1, t3, e2), без личных данных
+loop не более 3 попыток, всего не более 60 с
+  AI -> AD : command(текст, контекст)
+  AD -> LLM : запрос со схемой ответа
+  LLM --> AD : {action, kind, target, fields}
+end
+AI -> AI : проверить формат и значения;\nметки → id объектов пользователя;\nдля события конец позже начала
+alt action = CLARIFY или поля неполные
+  API --> UI : 200, уточняющий вопрос
+  UI --> U : «Уточните, на какую неделю»
+else ответ корректен
+  AI -> DB : INSERT ai_proposals\n(status = PENDING)
+  API --> UI : 201, предложение
+  UI --> U : карточка: что и как изменится
+  U -> UI : поправить поля
+  alt подтверждено
+    U -> UI : «Применить»
+    UI -> API : POST /ai/proposals/{id}/apply {finalData}
+    API -> AI : applyProposal(userId, id, finalData)
+    group транзакция
+      alt kind = TASK
+        AI -> DB : INSERT или UPDATE tasks
+      else kind = EVENT
+        AI -> DB : INSERT или UPDATE calendar_events
       end
-      UI -> AI : confirmProposal(id)
-      AI -> DB : предложение:\nACCEPTED / EDITED
-      UI --> U : задача или событие обновлены
-    else отклонено
-      U -> UI : «Отменить»
-      UI -> AI : rejectProposal(id)
-      AI -> DB : предложение: REJECTED
+      AI -> DB : предложение ACCEPTED или EDITED
     end
-  else ответ некорректен
-    AI --> UI : ошибка разбора
-    UI --> U : «Не удалось понять запрос,\nуточните формулировку»
+    API --> UI : 200, задача или событие
+    UI --> U : задача или событие обновлены
+  else отклонено
+    U -> UI : «Отменить»
+    UI -> API : POST /ai/proposals/{id}/reject
+    AI -> DB : CALL reject_proposal()
   end
-else таймаут или ошибка (после 2 повторов)
-  SRV --> AI : ошибка
-  AI --> UI : ИИ недоступен
+else ошибка ИИ
+  API --> UI : 502 / 503 / 504
   UI --> U : сообщение; ручная работа доступна
 end
 @enduml

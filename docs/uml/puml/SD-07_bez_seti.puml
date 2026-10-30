@@ -1,0 +1,52 @@
+@startuml SD-07_bez_seti
+!include seqhead.iuml
+title SD-07. Просмотр канбан-доски и календаря без сети (ФТ-42)
+actor "Пользователь" as U
+box "Браузер" #F7FAFD
+participant "Веб-интерфейс" as UI
+participant "API-клиент" as AC
+database "Копия\n(IndexedDB)" as IDB
+end box
+box "Сервер" #FBF7F2
+participant "REST API" as API
+participant "PlanningService" as PS
+database "PostgreSQL" as DB
+end box
+
+== Есть подключение: после входа и после каждого изменения ==
+AC -> API : GET /offline-snapshot?days=28
+API -> PS : getOfflineSnapshot(userId, 28)
+PS -> DB : задачи, цели, категории;\nкалендарь на 7 дней назад и 28 вперёд
+DB --> PS : записи
+API --> AC : 200, копия {generatedAt, calendarUntil, …}
+AC -> IDB : заменить копию целиком
+
+== Подключение пропало ==
+U -> UI : открыть канбан-доску или календарь
+UI -> AC : загрузить данные
+AC -> API : запрос
+API -[#red]x AC : нет сети
+AC -> IDB : прочитать копию
+IDB --> AC : данные последней синхронизации
+AC --> UI : данные «только просмотр»
+UI --> U : доска или календарь;\n«данные на {generatedAt},\nкалендарь заполнен до {calendarUntil}»
+opt дата за пределами копии
+  UI --> U : «Нет сохранённых данных за этот период»
+end
+opt попытка изменить данные
+  U -> UI : создать, изменить или удалить
+  UI --> U : «Изменения недоступны без интернета»
+end
+
+== Подключение вернулось ==
+AC -> API : GET /offline-snapshot
+API --> AC : 200, свежая копия
+AC -> IDB : заменить копию
+UI --> U : обычный режим
+
+== Выход из учётной записи ==
+U -> UI : «Выйти»
+UI -> AC : logout()
+AC -> API : POST /auth/logout
+AC -> IDB : удалить копию (п. 5.8.1)
+@enduml

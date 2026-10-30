@@ -1,41 +1,45 @@
 @startuml SD-09_nagruzka
 !include seqhead.iuml
-title SD-09. Оценка учебной нагрузки и рекомендации (ФТ-26–ФТ-29)
+title SD-09. Главная страница, учебная нагрузка и рекомендации (ФТ-20, ФТ-26–ФТ-29)
 actor "Пользователь" as U
-box "Браузер пользователя" #F7FAFD
+box "Браузер" #F7FAFD
 participant "Главная страница" as UI
-participant "Модуль контроля\nнагрузки" as LM
-database "Хранилище\n(IndexedDB)" as DB
 end box
 box "Сервер" #FBF7F2
-participant "Серверная часть\n(FastAPI)" as SRV
+participant "REST API" as API
+participant "PlanningService" as PS
+participant "OrioksService" as OS
+database "PostgreSQL" as DB
 end box
 participant "ОРИОКС" as OR
 
 U -> UI : открыть приложение
-UI -> LM : refreshLoad()
-LM -> SRV : GET /orioks/assignments
-SRV -> OR : запрос заданий
-alt ОРИОКС доступен
-  OR --> SRV : задания и сроки
-  SRV --> LM : задания (JSON)
-  LM -> DB : upsertAssignments()\nпо externalId
-else ОРИОКС недоступен
-  SRV --> LM : ошибка
-  LM --> UI : «Данные ОРИОКС не обновлены»
-  note right of LM : используются ранее\nсохранённые задания
+UI -> API : GET /dashboard
+API -> PS : getDashboard(userId)
+opt ОРИОКС подключён и задания давно не обновлялись
+  PS -> OS : sync(userId)
+  OS -> OR : дисциплины и контрольные\nмероприятия студента
+  alt ОРИОКС доступен
+    OR --> OS : мероприятия и недели
+    OS -> OS : срок = конец учебной недели;\nexternalId = дисциплина:вид:неделя
+    OS -> DB : CALL upsert_assignments()
+  else ОРИОКС недоступен
+    OS --> PS : ошибка
+    note right of PS : используются ранее\nсохранённые задания;\nв ответе предупреждение
+  end
 end
-LM -> DB : невыполненные задания и задачи\n(включая просроченные)
-DB --> LM : записи
-LM -> LM : нагрузка по неделям:\nколичество, сроки,\nприоритеты, статусы
+PS -> DB : workload_by_week(); невыполненные\nзадания; просроченные задачи;\nплан на сегодня
+DB --> PS : записи
+PS -> PS : выбрать рекомендацию
 alt несколько близких сроков
-  LM --> UI : предупреждение о нагрузке
+  PS -> PS : предупреждение о нагрузке
 else текущая нагрузка ниже следующей
-  LM --> UI : совет начать задания заранее
+  PS -> PS : совет начать задания заранее
 else иначе
-  LM --> UI : рекомендаций нет
+  PS -> PS : рекомендаций нет
 end
-UI --> U : список заданий, просроченные\nвыделены, рекомендация
+API --> UI : 200, план, просроченные, сроки,\nзадания, рекомендация
+UI --> U : главная страница;\nпросроченное выделено
 opt пользователь реагирует
   alt «Скрыть»
     U -> UI : скрыть рекомендацию

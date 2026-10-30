@@ -1,5 +1,5 @@
 @startuml data_model
 !include ../docs/uml/puml/style.iuml
 !include ../docs/uml/puml/CL-01_entities.iuml
-title Модель данных Adaptive AI Planner (хранилище браузера)
+title Модель данных Adaptive AI Planner (ТЗ v12, PostgreSQL)
 @enduml

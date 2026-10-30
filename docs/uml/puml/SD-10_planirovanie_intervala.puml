@@ -2,37 +2,43 @@
 !include seqhead.iuml
 title SD-10. Планирование интервала задачи с проверкой пересечений (ФТ-21, ФТ-22, ФТ-25)
 actor "Пользователь" as U
-box "Браузер пользователя" #F7FAFD
-participant "Календарь\n(экран)" as UI
-participant "Модуль календаря\nи расписания" as CM
-database "Хранилище\n(IndexedDB)" as DB
+box "Браузер" #F7FAFD
+participant "Календарь" as UI
+end box
+box "Сервер" #FBF7F2
+participant "REST API" as API
+participant "CalendarService" as CS
+database "PostgreSQL" as DB
 end box
 
 U -> UI : перетащить задачу\nна свободное время
-UI -> CM : addScheduleItem(taskId,\nstartAt, endAt)
-CM -> CM : проверить: конец позже начала
-CM -> DB : задача существует?
-DB --> CM : да
-alt данные корректны
-  CM -> DB : записать интервал
-  DB --> CM : id интервала
-  CM -> DB : события, интервалы и занятия\nза отображаемую неделю
-  DB --> CM : записи
-  CM -> CM : findOverlaps()
-  CM --> UI : интервал и найденные пересечения
-  UI --> U : интервал в календаре\n(в часовом поясе профиля)
-  opt есть пересечения
-    UI --> U : пересечение подсвечено
-    alt перенести
-      U -> UI : сдвинуть интервал
-      UI -> CM : moveCalendarItem(id,\nstartAt, endAt)
-      CM -> DB : обновить интервал
-    else оставить как есть
-      U -> UI : закрыть подсказку
+UI -> API : POST /schedule-items\n{taskId, startAt, endAt}
+API -> CS : createScheduleItem(userId, данные)
+alt конец не позже начала
+  API --> UI : 422 VALIDATION_ERROR
+  UI --> U : «Время окончания должно\nбыть позже начала»
+else время корректно
+  CS -> DB : INSERT schedule_items
+  alt задача не найдена у пользователя
+    DB --> CS : foreign_key_violation
+    API --> UI : 404 NOT_FOUND
+  else интервал сохранён
+    DB --> CS : интервал
+    CS -> DB : calendar_overlaps(userId,\nотображаемая неделя)
+    DB --> CS : пересечения
+    API --> UI : 201, интервал и пересечения
+    UI --> U : интервал в календаре\n(в часовом поясе профиля)
+    opt есть пересечения
+      UI --> U : пересечение подсвечено
+      alt перенести
+        U -> UI : сдвинуть интервал
+        UI -> API : PATCH /schedule-items/{id}\n{startAt, endAt}
+        API -> CS : updateScheduleItem(userId, id, данные)
+        CS -> DB : UPDATE schedule_items
+      else оставить как есть
+        U -> UI : закрыть подсказку
+      end
     end
   end
-else ошибка проверки
-  CM --> UI : ValidationError
-  UI --> U : «Время окончания должно\nбыть позже начала»
 end
 @enduml

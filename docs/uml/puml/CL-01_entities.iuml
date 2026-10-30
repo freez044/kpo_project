@@ -1,6 +1,7 @@
-' Сущности модели данных Adaptive AI Planner (ТЗ v11).
+' Сущности модели данных Adaptive AI Planner (ТЗ v12).
 ' Общий фрагмент: подключается в CL-01 (диаграмма классов) и в database/data_model.puml.
-' Имена классов и полей совпадают с типами в docs/storage/db.ts.
+' Поля названы в camelCase, как в REST API; в базе данных те же поля в snake_case
+' (database/postgresql/02_tables.sql). Идентификаторы — uuid.
 
 skinparam ClassBackgroundColor #EEF4FB
 skinparam ClassBorderColor #4A6FA5
@@ -53,31 +54,60 @@ package "Перечисления" as ENUMS {
   }
 }
 
-package "Основные данные" as CORE {
-  class UserProfile <<единственная запись>> {
-    +id: "me"
+package "Учётная запись" as ACCOUNT {
+  class User {
+    +id: uuid
+    +email: str {unique}
+    +passwordHash: str
     +firstName: str
     +lastName: str
-    +studyGroup: str
+    +studyGroup: str [0..1]
     +timezone: str
     +aiHistoryEnabled: bool
+    +failedLoginCount: int
+    +lockedUntil: datetime [0..1]
     +createdAt: datetime
     +updatedAt: datetime
   }
 
+  class Session {
+    +id: uuid
+    +userId: uuid
+    +refreshTokenHash: str {unique}
+    +userAgent: str [0..1]
+    +createdAt: datetime
+    +lastUsedAt: datetime
+    +expiresAt: datetime
+    +revokedAt: datetime [0..1]
+  }
+
+  class OrioksConnection {
+    +userId: uuid
+    +tokenEncrypted: bytes
+    +groupId: int
+    +semesterStart: date
+    +connectedAt: datetime
+    +lastSyncAt: datetime [0..1]
+    +lastSyncError: str [0..1]
+  }
+}
+
+package "Цели и задачи" as CORE {
   class Category {
-    +id: int
-    +name: str {unique}
+    +id: uuid
+    +userId: uuid
+    +name: str {unique у пользователя}
     +color: str [0..1]
   }
 
   class Goal {
-    +id: int
+    +id: uuid
+    +userId: uuid
     +title: str
     +description: str
     +status: GoalStatus
     +deadline: datetime [0..1]
-    +categoryId: int [0..1]
+    +categoryId: uuid [0..1]
     +durationMinutes: int [0..1]
     +createdAt: datetime
     +updatedAt: datetime
@@ -86,16 +116,17 @@ package "Основные данные" as CORE {
   }
 
   class Task {
-    +id: int
+    +id: uuid
+    +userId: uuid
     +title: str
     +description: str
     +status: TaskStatus
     +priority: TaskPriority
     +deadline: datetime [0..1]
-    +goalId: int [0..1]
-    +categoryId: int [0..1]
+    +goalId: uuid [0..1]
+    +categoryId: uuid [0..1]
     +durationMinutes: int [0..1]
-    +order: int [0..1]
+    +sortOrder: int [0..1]
     +source: TaskSource
     +completedAt: datetime [0..1]
     +createdAt: datetime
@@ -106,20 +137,27 @@ package "Основные данные" as CORE {
   }
 
   class FileAttachment {
-    +id: int
-    +taskId: int [0..1]
-    +goalId: int [0..1]
+    +id: uuid
+    +userId: uuid
+    +taskId: uuid [0..1]
+    +goalId: uuid [0..1]
     +originalName: str
     +mimeType: str
     +sizeBytes: int
-    +data: Blob
+    +storageKey: str
+    +sha256: str
     +createdAt: datetime
   }
+  note bottom of FileAttachment
+    Заполнено ровно одно из taskId и goalId {xor}.
+    Содержимое — в файловом хранилище сервера.
+  end note
 }
 
-package "Календарь и расписание" as CAL {
+package "Календарь" as CAL {
   abstract class CalendarItem {
-    +id: int
+    +id: uuid
+    +userId: uuid
     +title: str
     +startAt: datetime
     +endAt: datetime
@@ -130,7 +168,7 @@ package "Календарь и расписание" as CAL {
   }
 
   class ScheduleItem {
-    +taskId: int
+    +taskId: uuid
   }
 
   class AcademicLesson {
@@ -142,29 +180,39 @@ package "Календарь и расписание" as CAL {
     --
     +isReadOnly(): bool
   }
+}
 
+package "Учебные данные ОРИОКС" as ORIOKS_DATA {
   class AcademicAssignment {
+    +id: uuid
+    +userId: uuid
     +externalId: str
     +discipline: str
     +title: str
+    +controlType: str
+    +week: int
     +deadline: datetime [0..1]
-    +isDone: bool [0..1]
+    +maxGrade: float [0..1]
+    +isDone: bool
     +fetchedAt: datetime
   }
 }
 
 package "ИИ-ассистент" as AIPKG {
   class AIProposal {
-    +id: int
+    +id: uuid
+    +userId: uuid
+    +goalId: uuid [0..1]
     +kind: ProposalKind
     +requestText: str
-    +context: JSON [0..1]
+    +context: JSON
     +responseData: JSON
     +finalData: JSON [0..1]
     +status: ProposalStatus
     +model: str
     +latencyMs: int [0..1]
     +createdAt: datetime
+    +decidedAt: datetime [0..1]
     --
     +confirm(finalData: JSON): void
     +reject(): void
@@ -172,16 +220,27 @@ package "ИИ-ассистент" as AIPKG {
 }
 
 ' ── Связи ──
+User "1" *-- "0..*" Session : сеансы
+User "1" *-- "0..1" OrioksConnection : ОРИОКС
+note right of User
+  Каждая запись остальных сущностей
+  принадлежит одному пользователю (userId)
+  и удаляется вместе с ним (ФТ-05).
+  Связи между записями — только
+  в пределах одного пользователя.
+end note
+
 Goal "0..1" o-- "0..*" Task : включает
 Category "0..1" -- "0..*" Goal : классифицирует
 Category "0..1" -- "0..*" Task : классифицирует
 Task "1" *-- "0..*" ScheduleItem : планируется
 Task "0..1" *-- "0..*" FileAttachment : вложения
 Goal "0..1" *-- "0..*" FileAttachment : вложения
+Goal "0..1" -- "0..*" AIProposal : декомпозиция
 
 CalendarItem <|-- CalendarEvent
 CalendarItem <|-- ScheduleItem
 CalendarItem <|-- AcademicLesson
 
-ENUMS -[hidden]down- CORE
-CORE -[hidden]down- CAL
+ACCOUNT -[hidden]down- ENUMS
+ACCOUNT -[hidden]right- CORE

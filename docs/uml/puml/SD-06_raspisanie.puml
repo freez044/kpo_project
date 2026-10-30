@@ -2,36 +2,48 @@
 !include seqhead.iuml
 title SD-06. Импорт учебного расписания (ФТ-23, ФТ-24)
 actor "Пользователь" as U
-box "Браузер пользователя" #F7FAFD
-participant "Веб-интерфейс" as UI
-participant "Модуль календаря\nи расписания" as CM
-database "Хранилище\n(IndexedDB)" as DB
+box "Браузер" #F7FAFD
+participant "Календарь" as UI
 end box
 box "Сервер" #FBF7F2
-participant "Серверная часть\n(FastAPI)" as SRV
+participant "REST API" as API
+participant "OrioksService" as OS
+database "PostgreSQL" as DB
 end box
 participant "ОРИОКС" as OR
 
 U -> UI : «Обновить расписание»
-UI -> CM : importSchedule(группа из профиля)
-CM -> SRV : GET /orioks/schedule?group=…
-SRV -> OR : запрос расписания
-alt ОРИОКС доступен
-  OR --> SRV : занятия группы
-  SRV --> CM : занятия (JSON)
-  CM -> DB : заменить занятия\nиз источника «orioks»
-  DB --> CM : ok
-  CM --> UI : расписание обновлено
-  UI --> U : занятия в календаре
-else ОРИОКС недоступен
-  SRV --> CM : ошибка
-  CM --> UI : ОРИОКС недоступен
-  UI --> U : предложить загрузить\nфайл расписания
-  U -> UI : файл общего расписания
-  UI -> CM : importFromFile(файл)
-  CM -> CM : разобрать файл и выбрать\nзанятия группы
-  CM -> DB : заменить занятия\nиз источника «file»
-  CM --> UI : расписание обновлено
-  UI --> U : занятия в календаре
+UI -> API : POST /orioks/sync
+API -> OS : sync(userId)
+OS -> DB : подключение ОРИОКС\n(ключ доступа, groupId)
+alt ОРИОКС не подключён
+  API --> UI : 409 ORIOKS_NOT_CONNECTED
+  UI --> U : подключить ОРИОКС (SD-13)\nили загрузить файл расписания
+else подключён
+  OS -> OS : расшифровать ключ доступа
+  OS -> OR : даты семестра, время пар,\nрасписание группы groupId
+  alt ОРИОКС доступен
+    OR --> OS : расписание по неделям и парам
+    OS -> OS : перевести неделю, день и пару\nв дату и время занятий семестра
+    OS -> DB : CALL replace_lessons(userId, ORIOKS, занятия)
+    note right of DB : вместе с заданиями\nобновляются учебные задания (SD-09)
+    API --> UI : 200, итог обновления
+    UI --> U : занятия в календаре (только просмотр)
+  else ОРИОКС недоступен
+    API --> UI : 503 ORIOKS_UNAVAILABLE
+    UI --> U : предложить загрузить\nфайл общего расписания
+    U -> UI : файл расписания
+    UI -> API : POST /schedule/import-file (multipart)
+    API -> OS : importScheduleFile(userId, файл)
+    OS -> OS : разобрать файл, выбрать занятия\nгруппы пользователя (studyGroup)
+    alt формат распознан
+      OS -> DB : CALL replace_lessons(userId, FILE, занятия)
+      API --> UI : 200, число занятий
+      UI --> U : занятия в календаре
+    else формат не распознан
+      API --> UI : 422 VALIDATION_ERROR
+      UI --> U : «Формат файла не распознан»;\nпрежнее расписание сохранено
+    end
+  end
 end
 @enduml

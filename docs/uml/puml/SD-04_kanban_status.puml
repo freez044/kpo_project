@@ -2,22 +2,29 @@
 !include seqhead.iuml
 title SD-04. Изменение статуса на канбан-доске (ФТ-17, ФТ-30)
 actor "Пользователь" as U
-box "Браузер пользователя" #F7FAFD
+box "Браузер" #F7FAFD
 participant "Канбан-доска" as UI
-participant "Модуль задач\nи целей" as TM
-database "Хранилище\n(IndexedDB)" as DB
+end box
+box "Сервер" #FBF7F2
+participant "REST API" as API
+participant "TaskService" as TS
+database "PostgreSQL" as DB
 end box
 
-U -> UI : перетащить карточку\nв другую колонку
-UI -> TM : setTaskStatus(id, новый статус)
-alt новый статус DONE
-  TM -> DB : статус = DONE,\ncompletedAt = текущее время
-else задача была DONE
-  TM -> DB : новый статус,\nудалить completedAt
-else другой переход
-  TM -> DB : новый статус
+alt есть подключение к интернету
+  U -> UI : перетащить карточку\nв другую колонку
+  UI -> API : PATCH /tasks/{id} {status}
+  API -> TS : changeStatus(userId, id, статус)
+  TS -> DB : UPDATE tasks SET status
+  alt новый статус DONE
+    DB -> DB : триггер: completedAt = текущее время
+  else задача была DONE
+    DB -> DB : триггер: completedAt = NULL
+  end
+  DB --> TS : задача
+  API --> UI : 200, задача (completedAt, isOverdue)
+  UI --> U : карточка в новой колонке,\nпрогресс цели пересчитан
+else нет подключения (ФТ-42)
+  UI --> U : доска только для просмотра,\nперетаскивание недоступно
 end
-DB --> TM : ok
-TM --> UI : задача обновлена
-UI --> U : карточка в новой колонке,\nпрогресс цели пересчитан
 @enduml

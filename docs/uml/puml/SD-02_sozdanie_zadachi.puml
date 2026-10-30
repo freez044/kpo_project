@@ -2,27 +2,39 @@
 !include seqhead.iuml
 title SD-02. Создание задачи (ФТ-06–ФТ-08)
 actor "Пользователь" as U
-box "Браузер пользователя" #F7FAFD
+box "Браузер" #F7FAFD
 participant "Веб-интерфейс" as UI
-participant "Модуль задач\nи целей" as TM
-database "Хранилище\n(IndexedDB)" as DB
+end box
+box "Сервер" #FBF7F2
+participant "REST API" as API
+participant "TaskService" as TS
+database "PostgreSQL" as DB
 end box
 
 U -> UI : «Новая задача»
 UI --> U : форма задачи
 U -> UI : название, описание,\n[приоритет, дедлайн, цель,\nкатегория, длительность]
-UI -> TM : createTask(данные)
-TM -> TM : проверить название и\nположительность длительности
-alt данные корректны
-  TM -> DB : add(task, статус BACKLOG)
-  DB --> TM : id задачи
-  TM --> UI : задача создана
-  opt не указан дедлайн или длительность
-    UI --> U : предложить заполнить\nнедостающие данные
+UI -> API : POST /tasks
+API -> API : проверить токен и тело запроса
+alt тело не по схеме
+  API --> UI : 422 VALIDATION_ERROR (поле)
+  UI --> U : подсветить поле с ошибкой
+else запрос корректен
+  API -> TS : create(userId, данные)
+  TS -> DB : INSERT tasks\n(status = BACKLOG)
+  alt цель или категория не найдены у пользователя
+    DB --> TS : foreign_key_violation
+    API --> UI : 404 NOT_FOUND
+    UI --> U : сообщение об ошибке
+  else запись сохранена
+    DB --> TS : задача
+    TS --> API : задача
+    API --> UI : 201, задача
+    opt не указан дедлайн или длительность
+      UI --> U : предложить заполнить\nнедостающие данные
+    end
+    UI --> U : карточка в колонке «Бэклог»
   end
-  UI --> U : карточка в колонке «Бэклог»
-else ошибка проверки
-  TM --> UI : ValidationError
-  UI --> U : сообщение об ошибке
 end
+note over UI : после любого изменения данных\nAPI-клиент обновляет копию\nдля просмотра без сети (SD-07)
 @enduml

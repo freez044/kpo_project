@@ -2,36 +2,51 @@
 !include seqhead.iuml
 title SD-03. Удаление задачи со связанными данными (ФТ-09, НД-03)
 actor "Пользователь" as U
-box "Браузер пользователя" #F7FAFD
+box "Браузер" #F7FAFD
 participant "Веб-интерфейс" as UI
-participant "Модуль задач\nи целей" as TM
-database "Хранилище\n(IndexedDB)" as DB
+end box
+box "Сервер" #FBF7F2
+participant "REST API" as API
+participant "TaskService" as TS
+participant "FileService" as FSV
+database "PostgreSQL" as DB
+participant "Файловое\nхранилище" as FST
 end box
 
 U -> UI : удалить задачу
-UI -> TM : taskDeletionPreview(id)
-TM -> DB : посчитать интервалы\nи файлы задачи
-DB --> TM : количество записей
-TM --> UI : состав удаляемых данных
+UI -> API : GET /tasks/{id}/deletion-preview
+API -> TS : deletionPreview(userId, id)
+TS -> DB : task_deletion_preview()
+DB --> TS : интервалов: 2, файлов: 1
+API --> UI : 200, состав удаляемых данных
 UI --> U : окно подтверждения
 alt пользователь подтвердил
   U -> UI : «Удалить»
-  UI -> TM : deleteTask(id)
+  UI -> API : DELETE /tasks/{id}
+  API -> TS : delete(userId, id)
   group транзакция
-    TM -> DB : удалить интервалы календаря
-    TM -> DB : удалить файлы
-    TM -> DB : удалить задачу
+    TS -> DB : DELETE tasks
+    note right of DB
+      каскад: интервалы задачи
+      и её файлы; триггер кладёт
+      ключи файлов в очередь удаления
+    end note
   end
   alt транзакция завершена
-    DB --> TM : ok
-    TM --> UI : задача удалена
+    DB --> TS : ok
+    API --> UI : 204
     UI --> U : карточка убрана с доски
   else ошибка
-    DB --> TM : ошибка, изменения отменены
-    TM --> UI : сообщение об ошибке
+    DB --> TS : ошибка, изменения отменены
+    API --> UI : 500 INTERNAL_ERROR
     UI --> U : «Не удалось удалить задачу»
   end
 else отмена
   U -> UI : «Отмена»
 end
+
+== Фоновая задача ==
+FSV -> DB : ключи из file_deletion_queue
+FSV -> FST : удалить файлы
+FSV -> DB : удалить строки очереди
 @enduml

@@ -1,0 +1,63 @@
+@startuml SD-01_registraciya_vhod
+!include seqhead.iuml
+title SD-01. Регистрация и вход (ФТ-01, ФТ-41)
+actor "Пользователь" as U
+box "Браузер" #F7FAFD
+participant "Веб-интерфейс" as UI
+participant "API-клиент" as AC
+end box
+box "Сервер" #FBF7F2
+participant "REST API" as API
+participant "AccountService" as AS
+database "PostgreSQL" as DB
+end box
+
+== Регистрация ==
+U -> UI : email, пароль, имя, фамилия,\n[учебная группа], часовой пояс
+UI -> AC : register(данные)
+AC -> API : POST /auth/register
+API -> AS : register(данные)
+AS -> AS : проверить поля;\nхеш пароля argon2id
+AS -> DB : INSERT users
+alt email свободен
+  DB --> AS : пользователь
+  AS -> DB : INSERT sessions\n(хеш refresh-токена)
+  AS --> API : access- и refresh-токены
+  API --> AC : 201, accessToken;\nrefresh-токен в cookie
+  AC --> UI : вход выполнен
+  UI --> U : главная страница
+else email уже зарегистрирован
+  DB --> AS : unique_violation
+  API --> AC : 409 EMAIL_TAKEN
+  UI --> U : «Этот email уже зарегистрирован»
+end
+
+== Вход на другом устройстве ==
+U -> UI : email и пароль
+UI -> AC : login(email, пароль)
+AC -> API : POST /auth/login
+API -> AS : login(email, пароль, устройство)
+AS -> DB : найти пользователя по email
+alt вход заблокирован (lockedUntil в будущем)
+  API --> AC : 429 TOO_MANY_ATTEMPTS
+  UI --> U : «Вход временно заблокирован»
+else пароль неверный
+  AS -> DB : CALL register_login_failure
+  API --> AC : 401 INVALID_CREDENTIALS
+  UI --> U : «Неверный email или пароль»
+else пароль верный
+  AS -> DB : CALL register_login_success;\nINSERT sessions
+  note right of DB : сеансы на других устройствах\nне завершаются
+  API --> AC : 200, токены
+  UI --> U : главная страница
+end
+
+== Истёк access-токен ==
+AC -> API : любой запрос
+API --> AC : 401 UNAUTHORIZED
+AC -> API : POST /auth/refresh (cookie)
+API -> AS : refresh(токен)
+AS -> DB : отозвать старый сеанс,\nсоздать новый
+API --> AC : 200, новые токены
+AC -> API : повтор исходного запроса
+@enduml

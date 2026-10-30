@@ -1,52 +1,60 @@
 @startuml SD-05_dekompoziciya
 !include seqhead.iuml
-title SD-05. Декомпозиция цели с помощью ИИ (ФТ-37–ФТ-40)
+title SD-05. Декомпозиция цели с помощью ИИ (ФТ-37–ФТ-40, НД-01)
 actor "Пользователь" as U
-box "Браузер пользователя" #F7FAFD
-participant "Веб-интерфейс" as UI
-participant "Модуль ИИ" as AI
-participant "Модуль задач\nи целей" as TM
-database "Хранилище\n(IndexedDB)" as DB
+box "Браузер" #F7FAFD
+participant "Страница цели" as UI
 end box
 box "Сервер" #FBF7F2
-participant "Серверная часть\n(FastAPI)" as SRV
+participant "REST API" as API
+participant "AIService" as AI
+participant "LLMAdapter" as AD
+database "PostgreSQL" as DB
 end box
 participant "LLM API" as LLM
 
 U -> UI : «Разбить цель на задачи»
-UI -> AI : decompose(цель)
-AI -> SRV : POST /ai/decompose\n(название и описание цели,\nбез файлов)
-SRV -> LLM : запрос с ключом API\nи схемой ответа (JSON)
-alt ответ получен за 60 с
-  LLM --> SRV : предложение
-  SRV --> AI : предложение (JSON)
-  AI -> AI : проверить формат,\nзначения и ссылки
-  alt ответ корректен
-    AI -> DB : saveProposal()\n(status = PENDING)
-    AI --> UI : список задач
-    UI --> U : предложение для проверки
-    U -> UI : изменить, удалить или\nдобавить задачи
-    alt подтверждено
-      U -> UI : «Создать задачи»
-      UI -> TM : applyDecomposition(цель, задачи)
-      group транзакция
-        TM -> DB : создать задачи с порядком 1..N
-        TM -> DB : предложение:\nACCEPTED / EDITED
-      end
-      TM --> UI : задачи созданы
-      UI --> U : задачи на странице цели
-    else отклонено
-      U -> UI : «Отклонить»
-      UI -> AI : rejectProposal(id)
-      AI -> DB : предложение: REJECTED
+UI -> API : POST /ai/decompose {goalId}
+API -> AI : decomposeGoal(userId, goalId)
+AI -> DB : название и описание цели
+DB --> AI : цель (без файлов)
+loop не более 3 попыток, всего не более 60 с
+  AI -> AD : decompose(цель, контекст)
+  AD -> LLM : запрос с ключом API\nи JSON-схемой ответа
+  LLM --> AD : ответ или ошибка
+  AD -> AD : проверить по схеме
+end
+alt получен корректный ответ
+  AI -> AI : проверить значения\n(1–20 задач, длительность, приоритет)
+  AI -> DB : INSERT ai_proposals\n(status = PENDING)
+  API --> UI : 201, предложение
+  UI --> U : список задач для проверки
+  U -> UI : изменить, удалить\nили добавить задачи
+  alt подтверждено
+    U -> UI : «Создать задачи»
+    UI -> API : POST /ai/proposals/{id}/apply {finalData}
+    API -> AI : applyProposal(userId, id, finalData)
+    group транзакция
+      AI -> DB : apply_decomposition()
+      note right of DB
+        задачи цели с порядком N+1…;
+        предложение ACCEPTED или EDITED
+        (удаляется, если история отключена)
+      end note
     end
-  else ответ некорректен
-    AI --> UI : ошибка формата ответа
-    UI --> U : «Не удалось разобрать ответ ИИ»
+    API --> UI : 200, созданные задачи
+    UI --> U : задачи на странице цели
+  else отклонено
+    U -> UI : «Отклонить»
+    UI -> API : POST /ai/proposals/{id}/reject
+    API -> AI : rejectProposal(userId, id)
+    AI -> DB : CALL reject_proposal()
   end
-else таймаут или ошибка (после 2 повторов)
-  SRV --> AI : ошибка
-  AI --> UI : сервис ИИ недоступен
+else ответ не прошёл проверку
+  API --> UI : 502 AI_BAD_RESPONSE
+  UI --> U : «Не удалось разобрать ответ ИИ»
+else недоступен или время вышло
+  API --> UI : 503 AI_UNAVAILABLE / 504 AI_TIMEOUT
   UI --> U : сообщение; ручная работа доступна
 end
 @enduml

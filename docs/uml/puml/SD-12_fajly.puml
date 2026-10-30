@@ -2,44 +2,51 @@
 !include seqhead.iuml
 title SD-12. Прикрепление и скачивание файла (ФТ-32–ФТ-34, НД-02)
 actor "Пользователь" as U
-box "Браузер пользователя" #F7FAFD
+box "Браузер" #F7FAFD
 participant "Карточка задачи" as UI
-participant "Модуль файлов" as FM
-database "Хранилище\n(IndexedDB)" as DB
+end box
+box "Сервер" #FBF7F2
+participant "REST API" as API
+participant "FileService" as FS
+database "PostgreSQL" as DB
+participant "Файловое\nхранилище" as FST
 end box
 
 == Прикрепление ==
 U -> UI : выбрать файл
-UI -> FM : attachFile({taskId}, файл)
-FM -> FM : проверить тип и размер\n(приложение В ТЗ)
+UI -> API : POST /tasks/{id}/files (multipart)
+API -> FS : attach(userId, задача, файл)
+FS -> FS : проверить тип и размер\n(приложение В ТЗ)
 alt файл не подходит
-  FM --> UI : ValidationError
+  API --> UI : 413 FILE_TOO_LARGE /\n415 UNSUPPORTED_FILE_TYPE
   UI --> U : «Недопустимый тип\nили слишком большой файл»
 else файл подходит
-  FM -> DB : задача существует?
-  DB --> FM : да
-  FM -> DB : записать файл (Blob)
-  alt место есть
-    DB --> FM : id файла
-    FM --> UI : файл прикреплён
-    UI --> U : файл в списке карточки
-  else QuotaExceededError
-    DB --> FM : нет места
-    FM --> UI : ошибка
-    UI --> U : «В браузере закончилось место»
+  FS -> DB : задача принадлежит пользователю?
+  alt нет
+    API --> UI : 404 NOT_FOUND
+  else да
+    FS -> FST : записать файл под новым\nstorageKey; посчитать sha256
+    FS -> DB : INSERT file_attachments
+    alt запись в базу успешна
+      API --> UI : 201, описание файла
+      UI --> U : файл в списке карточки
+    else ошибка
+      FS -> FST : удалить записанный файл
+      API --> UI : 500 INTERNAL_ERROR
+      UI --> U : «Не удалось сохранить файл»
+    end
   end
 end
 
 == Просмотр и скачивание ==
 U -> UI : открыть карточку
-UI -> FM : filesForTaskCard(id)
-FM -> DB : файлы задачи и файлы её цели
-DB --> FM : список
-FM --> UI : список без копий
+UI -> API : GET /tasks/{id}
+API --> UI : задача, файлы задачи\nи файлы её цели (ФТ-33)
 U -> UI : скачать файл
-UI -> FM : getFile(fileId)
-FM -> DB : прочитать Blob
-DB --> FM : содержимое
-FM --> UI : файл
+UI -> API : GET /files/{fileId}
+API -> FS : download(userId, fileId)
+FS -> DB : файл принадлежит пользователю?
+FS -> FST : прочитать по storageKey
+API --> UI : 200, содержимое файла
 UI --> U : браузер сохраняет файл
 @enduml

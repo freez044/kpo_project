@@ -1,31 +1,30 @@
 @startuml LD-01_urovni
 !include style.iuml
-title LD-01. Уровни (слои) архитектуры Adaptive AI Planner
-skinparam packageStyle rectangle
-skinparam RectangleFontStyle plain
-skinparam PackageFontStyle bold
-skinparam nodesep 30
-skinparam ranksep 40
+title LD-01. Уровни (слои) архитектуры Adaptive AI Planner (ТЗ v12)
 
-package "Клиент: браузер пользователя" as CLIENT {
+package "Клиент: браузер на любом устройстве" as CLIENT {
   package "1. Уровень представления" as L1 #EEF4FB {
-    rectangle "Экраны React: главная, канбан-доска, цели,\nкалендарь, ИИ-ассистент, профиль\n—\nотображение, формы, перетаскивание,\nподтверждения, сообщения об ошибках" as R1
+    rectangle "Экраны React: вход, главная, канбан-доска, цели,\nкалендарь, ИИ-ассистент, профиль\n—\nформы, перетаскивание, подтверждения,\nсообщения об ошибках, адаптивная вёрстка" as R1
   }
-  package "2. Уровень бизнес-логики" as L2 #EAF5EA {
-    rectangle "Модули: задачи и цели, календарь и расписание,\nконтроль нагрузки, файлы,\nИИ (проверка ответа), профиль и резервная копия\n—\nправила ФТ, проверка данных (НД-04),\nрасчёт просрочки, прогресса, пересечений" as R2
-  }
-  package "3. Уровень доступа к данным" as L3 #FFF6E5 {
-    rectangle "Dexie (db.ts): таблицы, индексы, транзакции (НД-03),\nэкспорт и импорт резервной копии" as R3
-  }
-  package "4. Уровень хранения" as L4 #F2F2F2 {
-    database "IndexedDB браузера" as R4
-  }
-  rectangle "API-клиент\n(HTTPS, JSON)" as APIC
+  rectangle "API-клиент (HTTPS, JSON):\naccess-токен, обновление сеанса,\nкопия для просмотра без сети (IndexedDB)" as APIC
 }
 
 package "Сервер" as SERVER {
-  package "5. Уровень интеграции" as L5 #F5EEF8 {
-    rectangle "FastAPI: REST API (OpenAPI), единый формат ошибок,\nтаймаут 60 с и 2 повтора (НД-01)\n—\nадаптер языковой модели (заменяемый), адаптер ОРИОКС;\nпользовательские данные не хранятся" as R5
+  package "2. Уровень API" as L2 #F5EEF8 {
+    rectangle "FastAPI: REST API (OpenAPI), проверка токена и прав,\nпроверка запросов (Pydantic), единый формат ошибок" as R2
+  }
+  package "3. Уровень бизнес-логики" as L3 #EAF5EA {
+    rectangle "Сервисы: учётные записи, задачи, цели, категории,\nкалендарь, файлы, планирование, ОРИОКС, ИИ\n—\nправила ФТ, расчёт просрочки, прогресса,\nпересечений и нагрузки" as R3
+  }
+  package "4. Уровень доступа к данным" as L4 #FFF6E5 {
+    rectangle "Слой данных (SQLAlchemy): запросы, транзакции (НД-03),\nмиграции Alembic" as R4
+  }
+  package "5. Уровень хранения" as L5 #F2F2F2 {
+    database "PostgreSQL" as R5
+    rectangle "Файловое\nхранилище" as R5F
+  }
+  package "Интеграции" as L6 #F5EEF8 {
+    rectangle "LLMAdapter (заменяемый),\nклиент ОРИОКС;\nдо 2 повторов, 60 с на операцию (НД-01)" as R6
   }
 }
 
@@ -34,18 +33,20 @@ package "Внешние системы" as EXT {
   rectangle "ОРИОКС" as E2
 }
 
-R1 -down-> R2 : вызовы модулей
-R2 -down-> R3 : чтение и запись
-R3 -down-> R4
-R2 -right-> APIC : запросы к ИИ\nи ОРИОКС
-APIC -down-> R5
-R5 -down-> E1
-R5 -down-> E2
+R1 -down-> APIC : вызовы API
+APIC -right-> R2 : HTTPS
+R2 -down-> R3 : вызовы сервисов
+R3 -down-> R4 : чтение и запись
+R4 -down-> R5
+R3 -down-> R5F : файлы
+R3 -right-> R6 : запросы к ИИ\nи ОРИОКС
+R6 -down-> E1
+R6 -down-> E2
 
 note right of R1
   Каждый уровень обращается
   только к уровню ниже;
-  интерфейс не работает
-  с хранилищем напрямую
+  браузер не работает с базой,
+  LLM и ОРИОКС напрямую
 end note
 @enduml
