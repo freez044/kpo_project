@@ -28,14 +28,14 @@
 - `database/data_model.md` и `Модель_данных_…_v2.docx` описывают хранилище браузера по ТЗ v11
   (диаграмма `data_model.png` уже по v12).
 - `docs/storage/db.ts` — хранилище IndexedDB по ТЗ v11; по v12 оно станет только копией для просмотра без сети.
-- `backend/app` — ранняя заготовка: маршруты `/tasks` хранят данные в списке в памяти, перечисление
-  `TaskStatus` расходится с ТЗ (`IN_CREATION` вместо `PLANNED`), `Colors` расходится с форматом `#RRGGBB`.
-  Её нужно переписать по `docs/contracts.md`.
+- `backend/app/routers`, `backend/app/schemas` — ранняя заготовка: маршруты `/tasks` хранят данные
+  в списке в памяти, `Colors` расходится с форматом `#RRGGBB`. Её нужно переписать по `docs/contracts.md`
+  поверх слоя данных `backend/app/db` (он уже по ТЗ v12).
 - `database/legacy_postgresql/`, `docs/uml/legacy/`, `docs/plan_…(outdated).docx` — архив.
 
 ## Стек и запуск
 
-- Сервер: Python 3.13+, FastAPI, Pydantic, SQLAlchemy 2, Alembic (планируется), `uv` для окружения.
+- Сервер: Python 3.13+, FastAPI, Pydantic, SQLAlchemy 2, Alembic, `uv` для окружения.
 - База: PostgreSQL 15+ (нужен `ON DELETE SET NULL (столбец)`).
 - Фронтенд: React + TypeScript (каркаса пока нет).
 
@@ -44,10 +44,14 @@
 uv sync --project backend --frozen
 uv run --project backend --frozen python -m uvicorn app.main:app --app-dir backend
 
-# база данных и тесты схемы
+# база данных: миграции Alembic (адрес — DATABASE_URL в .env, образец — .env.example)
 createdb planner
-psql -d planner -f database/postgresql/install.sql
+uv run --project backend --frozen alembic -c backend/alembic.ini upgrade head
 psql -d planner -f database/postgresql/tests/test_schema.sql   # «Все проверки пройдены»
+
+# тесты сервера: PostgreSQL поднимается в Docker (testcontainers);
+# вместо Docker можно указать пустую базу в TEST_DATABASE_URL
+uv run --project backend --frozen pytest backend/tests
 
 # диаграммы (из docs/uml)
 java -DPLANTUML_LIMIT_SIZE=16384 -jar plantuml.jar -tpng -o ../png puml/*.puml
@@ -73,7 +77,9 @@ java -DPLANTUML_LIMIT_SIZE=16384 -jar plantuml.jar -tpng -o ../png puml/*.puml
 - Имена веток: `feat/…`, `fix/…`, `docs/…`. Сообщения коммитов: `тип(область): что сделано`
   по-русски, как в истории репозитория.
 - Изменение контракта (API, схема БД, схемы ответов ИИ) — PR с меткой `contract`, его одобряют все стороны.
-- Схема БД после появления Alembic меняется только новой миграцией; уже применённые не правятся.
+- Схема БД меняется только новой миграцией Alembic (`backend/migrations/versions`); уже применённые
+  не правятся. Скрипты `database/postgresql/01–06` — снимок миграции 0001, их тоже не меняем.
+- Сервисы работают с базой через репозитории `backend/app/db/repositories` (user_id — первый аргумент).
 - Изменили сценарий или сущность — обновите `.puml` и перерисуйте PNG.
 - Не меняй ТЗ (`.docx`) и архивные папки без явной просьбы.
 
