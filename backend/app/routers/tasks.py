@@ -13,7 +13,7 @@ tasks = [
         'id':1,
         'title':"Изучить FastAPI",
         'est_duration': 60,
-        'status': TaskStatus.IN_CREATION
+        'status': TaskStatus.BACKLOG
     }
 ]
 

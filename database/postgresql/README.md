@@ -22,9 +22,12 @@
 
 ## Запуск
 
+Обычно схему ставит первая миграция Alembic (`backend/migrations/versions/0001_initial_schema.py`):
+она выполняет скрипты из `install.sql` по порядку.
+
 ```sh
 createdb planner
-psql -d planner -f database/postgresql/install.sql
+uv run --project backend --frozen alembic -c backend/alembic.ini upgrade head   # или: psql -d planner -f database/postgresql/install.sql
 psql -d planner -f database/postgresql/tests/test_schema.sql   # последняя строка: «Все проверки пройдены»
 ```
 
@@ -35,6 +38,11 @@ DROP SCHEMA planner, analytics CASCADE;
 ```
 
 Роли общие для всего сервера PostgreSQL и при повторной установке не пересоздаются.
+
+Базу создавайте с локалью UTF-8 (так по умолчанию в образе `postgres` для Docker). При локали `C`
+`citext` не приводит кириллицу к одному регистру, и «Учёба» и «УЧЁБА» станут разными категориями.
+Например: `createdb -T template0 -E UTF8 --locale-provider=builtin --builtin-locale=C.UTF-8 planner`
+(PostgreSQL 17+).
 
 ## Пользователи для входа
 
@@ -77,7 +85,8 @@ ALTER ROLE planner_backend SET search_path = planner;
   удаляет файл из хранилища, затем строку из очереди.
 - **Текстовые запросы к ИИ** (`COMMAND`) применяет серверная часть обычными запросами
   к таблицам задач и событий; декомпозицию цели — функция `planner.apply_decomposition`.
-- **Миграции.** Эти скрипты — первая версия схемы. Дальше структура меняется только
-  миграциями Alembic; первая миграция может просто выполнить `install.sql`.
+- **Миграции.** Эти скрипты — первая версия схемы, их выполняет миграция Alembic `0001`.
+  После применения скрипты не меняются: структура дальше меняется только новыми миграциями
+  в `backend/migrations/versions`.
 - **Плановые задачи:** `CALL planner.purge_sessions();` раз в сутки и обработка
   `planner.file_deletion_queue`.
