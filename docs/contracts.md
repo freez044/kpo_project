@@ -214,6 +214,28 @@ API-клиент вызывает `GET /offline-snapshot?days=28` после в�
 | `23503` foreign_key_violation, `AP001` | 404 `NOT_FOUND` |
 | `AP002` | 409 `CONFLICT` |
 
+## Слой данных
+
+Сервисы с диаграммы CL-02 работают с базой только через репозитории `backend/app/db/repositories`.
+Сеанс SQLAlchemy передаётся в конструктор, `user_id` — первый аргумент каждого метода; запрос
+видит только записи этого пользователя. Репозитории не фиксируют транзакцию — это делает
+вызывающий (`app.db.session.get_session`: одна транзакция на запрос API).
+
+| Репозиторий | Методы | Сервис |
+|---|---|---|
+| `TaskRepository` | `list(user_id, TaskFilters)`, `get`, `create`, `update`, `change_status`, `delete`, `deletion_preview` | TaskService |
+| `GoalRepository` | `list(user_id, status)`, `get`, `create`, `update`, `delete`, `deletion_preview`, `progress` | GoalService |
+| `CategoryRepository` | `list`, `get`, `create`, `update`, `delete` | CategoryService |
+| `UserRepository` | `create(data)`, `find_by_email(email)`, `get`, `update`, `delete` | AccountService |
+
+- `create` и `update` принимают словарь полей в snake_case (`model_dump(exclude_unset=True)` схемы
+  Pydantic); `None` очищает поле. Поле, которого нет в списке разрешённых (`id`, `user_id`,
+  `completed_at`…), — `ValueError`.
+- Запись выполняется в точке сохранения: после ошибки транзакция запроса остаётся рабочей.
+- Ошибки — исключения `app.db.errors`: `NotFoundError` → 404, `ConflictError` → 409,
+  `DataValidationError` → 422 (по таблице SQLSTATE выше). В исключении есть `constraint` —
+  имя ограничения базы, по нему сервис выбирает `field` и `code` (`users_email_key` → `EMAIL_TAKEN`).
+
 ## ИИ-модуль
 
 ИИ-модуль целиком на сервере (владелец — тимлид): сервер сам собирает контекст из базы, вызывает модель,
