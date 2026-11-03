@@ -1,18 +1,19 @@
-# Данные Adaptive AI Planner
+# Данные Adaptive AI Planner (ТЗ v12)
 
-| Файл | Что внутри |
+Актуальная серверная модель данных по ТЗ v12 хранится в PostgreSQL. Документы по прежней браузерной модели v11 убраны как устаревшие.
+
+| Путь | Что внутри |
 |---|---|
-| [`data_model.md`](data_model.md) | Модель данных: сущности, поля, связи, правила удаления и проверки, резервная копия |
-| `Модель_данных_Adaptive_AI_Planner_v2.docx` | Тот же документ в Word, собран из `data_model.md` |
-| `data_model.puml`, `data_model.png` | Диаграмма модели данных по ТЗ v12; использует общие описания классов из `docs/uml/puml/CL-01_entities.iuml` |
-| [`postgresql/`](postgresql/) | Схема PostgreSQL по ТЗ v12: таблицы, ограничения, индексы, функции, процедуры, роли и тесты |
-| [`legacy_postgresql/`](legacy_postgresql/) | Архив ранней серверной схемы PostgreSQL, в проекте не используется |
+| [`data_model.puml`](data_model.puml), [`data_model.png`](data_model.png) | Актуальная UML-диаграмма сущностей по ТЗ v12 |
+| [`postgresql/`](postgresql/) | Основная схема PostgreSQL: SQL-скрипты, ограничения, индексы, функции, процедуры и проверки |
+| [`../backend/app/db/`](../backend/app/db/) | ORM-модели SQLAlchemy и репозитории |
+| [`../backend/migrations/`](../backend/migrations/) | Миграции Alembic |
+| [`legacy_postgresql/`](legacy_postgresql/) | Исторические SQL-скрипты ранней реализации: оставлены для сравнения во время ревизии БД, не используются для актуальной установки |
 
-Текст `data_model.md` пока описывает хранилище браузера по ТЗ v11 (диаграмма уже обновлена под v12); его реализация — модуль [`docs/storage/db.ts`](../docs/storage/db.ts). Серверная схема по ТЗ v12 — в [`postgresql/`](postgresql/).
+Диаграмма `data_model.puml` подключает общий набор сущностей из `docs/uml/puml/CL-01_entities.iuml`. Правила API и форматы данных описаны в [контрактах](../docs/contracts.md).
 
-Пересобрать после правок:
+Пересобрать диаграмму (из корня репозитория):
 
 ```sh
 java -jar plantuml.jar -tpng database/data_model.puml
-cd database && pandoc data_model.md -o Модель_данных_Adaptive_AI_Planner_v2.docx
 ```
