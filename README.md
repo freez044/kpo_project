@@ -22,11 +22,11 @@
 
 | Часть проекта | Что есть в репозитории |
 |---|---|
-| Документация | ТЗ v12 (изменения относительно v11 — в таблице «Управление версиями» в начале документа), [модель данных v2.0](database/data_model.md) по ТЗ v11, материалы проектирования |
+| Документация | ТЗ v12, [контракты API](docs/contracts.md), [актуальная UML-модель данных](database/data_model.puml) и материалы проектирования |
 | UML | Диаграммы вариантов использования, классов, компонентов, уровней, последовательностей и активностей; исходники PlantUML, PNG и PDF |
 | Backend | Приложение FastAPI, пять маршрутов задач, схемы Pydantic и перечисления статусов и приоритетов |
 | Локальное хранилище | Модуль `docs/storage/db.ts` с 10 таблицами IndexedDB и 14 тестами `db.test.ts`; к интерфейсу не подключён |
-| PostgreSQL | Ранняя серверная схема перенесена в архив [`database/legacy_postgresql`](database/legacy_postgresql/) и в проекте не используется |
+| PostgreSQL | Актуальная схема по ТЗ v12 — [`database/postgresql`](database/postgresql/); ранняя схема сохранена отдельно для сравнения |
 | Frontend | Каркас приложения отсутствует |
 | ИИ и ОРИОКС | Вызовы внешних API отсутствуют |
 
@@ -48,13 +48,13 @@ API задач хранит записи в списке Python в памяти 
 
 Содержимое вложений не передаётся языковой модели. Даты, просрочки, прогресс и конфликты времени рассчитываются программной логикой.
 
-UML-диаграммы и схема базы данных (`database/postgresql`) описывают архитектуру ТЗ v12. Текст `database/data_model.md` и модуль `docs/storage/db.ts` пока описывают хранилище браузера по ТЗ v11 и будут обновлены.
+UML-диаграммы и схема базы данных (`database/postgresql`) описывают архитектуру ТЗ v12. Модуль `docs/storage/db.ts` остаётся прототипом браузерного хранилища по ТЗ v11; для режима офлайн-просмотра по v12 он требует адаптации.
 
 ## Технологии
 
 - **Backend:** Python 3.13+, FastAPI, Pydantic, Uvicorn; зависимости зафиксированы в `backend/uv.lock`, управление окружением — `uv`.
 - **Модуль браузерного хранилища:** TypeScript, Dexie, `dexie-export-import`.
-- **Архивные SQL-материалы:** PostgreSQL, в проекте не используются. SQLAlchemy и Psycopg объявлены в зависимостях backend, но не используются в коде приложения.
+- **База данных:** PostgreSQL 15+, SQLAlchemy 2, Psycopg 3, Alembic; SQL-модель и миграции находятся в `database/postgresql` и `backend/migrations`.
 - **Проектирование:** PlantUML.
 - **Планируемый интерфейс:** React и TypeScript.
 
@@ -73,9 +73,9 @@ UML-диаграммы и схема базы данных (`database/postgresql
 │   ├── pyproject.toml
 │   └── uv.lock
 ├── database/
-│   ├── data_model.md         # Модель данных (и её версия .docx)
-│   ├── data_model.puml       # Диаграмма модели данных
-│   └── legacy_postgresql/    # Архив ранней схемы PostgreSQL
+│   ├── data_model.puml       # Диаграмма модели данных по ТЗ v12
+│   ├── postgresql/           # Актуальная схема PostgreSQL и проверки
+│   └── legacy_postgresql/    # Ранние SQL-скрипты для сравнения
 ├── docs/
 │   ├── storage/              # Модуль IndexedDB, тесты и описание
 │   ├── uml/
@@ -149,14 +149,14 @@ Backend проверен 20 октября 2026 года в отдельном �
 | Создание с некорректными входными данными | HTTP 422 |
 | Операции с существующей задачей и создание с корректным запросом | Выявлены ошибки, перечисленные выше |
 
-Хранилище проверено 21 октября 2026 года: 14 тестов `db.test.ts` пройдено. Автоматизированные тесты backend в репозитории пока отсутствуют; `backend/test.py` пуст.
+Хранилище проверено 21 октября 2026 года: 14 тестов `db.test.ts` пройдено. В `backend/tests` есть тесты слоя данных и миграций; `backend/test.py` — пустая заготовка.
 
 ## Документация
 
 - [Техническое задание v12](docs/ТЗ_Adaptive_AI_Planner_v12.docx)
 - [Контракты: REST API, ошибки, ИИ-модуль, ОРИОКС](docs/contracts.md)
-- [Памятка для Claude Code](CLAUDE.md)
-- [Модель данных v2.0](database/data_model.md) ([Word](database/Модель_данных_Adaptive_AI_Planner_v2.docx))
+- [Актуальная UML-модель данных (PlantUML)](database/data_model.puml) ([PNG](database/data_model.png))
+- [Схема PostgreSQL по ТЗ v12](database/postgresql/README.md)
 - [Описание локального хранилища](docs/storage/README.md)
 - [Модуль IndexedDB](docs/storage/db.ts)
 - [Обзор UML-диаграмм](docs/uml/README.md)

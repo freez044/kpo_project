@@ -5,7 +5,14 @@
 
 \set ON_ERROR_STOP on
 \set QUIET on
+-- Результаты SELECT не нужны: итог каждой проверки печатается сообщением «ok: …».
+-- Пустое устройство называется по-разному: NUL в Windows, /dev/null в Linux и macOS.
+\getenv windows_os OS
+\if :{?windows_os}
+\o NUL
+\else
 \o /dev/null
+\endif
 BEGIN;
 
 -- Ожидаем, что запрос упадёт с заданным SQLSTATE.
