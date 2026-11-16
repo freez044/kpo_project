@@ -1,0 +1,9 @@
+# Minimal local account server; PostgreSQL tooling remains in pyproject.toml.
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+argon2-cffi>=23,<26
+PyJWT>=2.9,<3
+pydantic-settings>=2.5,<3
+email-validator>=2.2,<3
+tzdata
+cryptography>=44,<47
