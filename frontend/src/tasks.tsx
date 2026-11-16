@@ -1,12 +1,11 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import { Check, Flag, Pencil, Trash2, X } from 'lucide-react';
-import { apiRequest } from './auth';
+import { apiRequest } from './services/api';
+import Modal from './components/Modal';
 
-export const statuses = { BACKLOG: 'Без плана', PLANNED: 'Запланирована', IN_PROGRESS: 'В работе', IN_HOLD: 'На паузе', DONE: 'Выполнена', CANCELLED: 'Отменена' };
-export const priorities = { LOW: 'Низкий', MEDIUM: 'Средний', HIGH: 'Высокий', URGENT: 'Срочный' };
-export type Task = { id: string; title: string; description: string; deadline: string | null; plannedDate: string | null; category: string | null; priority: keyof typeof priorities; status: keyof typeof statuses; completedAt: string | null; isOverdue: boolean; createdAt: string; updatedAt: string; source?: string; orioks?: { discipline: string; week: number; plannedDueAt: string | null; noPenaltyUntil: string | null; deadlineSource: string; stage: string } | null };
-export type Dashboard = { date: string; today: Task[]; overdue: Task[]; upcoming: Task[]; completedCount: number };
-export type TaskInput = Pick<Task, 'title' | 'description' | 'deadline' | 'plannedDate' | 'category' | 'priority' | 'status'>;
+import { statuses, priorities, type Task, type TaskInput } from './types/task';
+export { statuses, priorities } from './types/task';
+export type { Task, Dashboard, TaskInput } from './types/task';
 export const isFinished = (task: Task) => task.status === 'DONE' || task.status === 'CANCELLED';
 export function formatDeadline(value: string | null, zone: string) {
   return value ? new Date(value).toLocaleString('ru-RU', { timeZone: zone, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Без срока';
@@ -39,7 +38,7 @@ export function TaskRow({ task, zone, busy, onToggle, onEdit, onDelete }: { task
 }
 
 export function TaskEditor({ task, initialStatus, today, zone, onClose, onSaved }: { task: Task | null; initialStatus?: Task['status']; today: string; zone: string; onClose: () => void; onSaved: (task: Task) => void }) {
-  const dialog = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   const [title, setTitle] = useState(task?.title || '');
   const [description, setDescription] = useState(task?.description || '');
   const [category, setCategory] = useState(task?.category || '');
@@ -49,7 +48,6 @@ export function TaskEditor({ task, initialStatus, today, zone, onClose, onSaved 
   const [status, setStatus] = useState<Task['status']>(task?.status || initialStatus || 'PLANNED');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
-  useEffect(() => { dialog.current?.showModal(); }, []);
   async function submit(event: FormEvent) {
     event.preventDefault(); setError(''); setPending(true);
     try {
@@ -59,28 +57,25 @@ export function TaskEditor({ task, initialStatus, today, zone, onClose, onSaved 
     } catch (err) { setError(err instanceof Error ? err.message : 'Не удалось сохранить задачу.'); }
     finally { setPending(false); }
   }
-  return <dialog className="modal task-dialog" ref={dialog} onCancel={e => { e.preventDefault(); if (!pending) onClose(); }}><div className="section-title"><h2>{task ? 'Редактировать задачу' : 'Новая задача'}</h2><button disabled={pending} className="icon-button" onClick={onClose} aria-label="Закрыть"><X size={20}/></button></div><form onSubmit={submit}><fieldset disabled={pending}>
+  return <Modal onClose={onClose} busy={pending} labelledBy={titleId}><div className="section-title"><h2 id={titleId}>{task ? 'Редактировать задачу' : 'Новая задача'}</h2><button disabled={pending} className="icon-button" onClick={onClose} aria-label="Закрыть"><X size={20}/></button></div><form onSubmit={submit}><fieldset disabled={pending}>
     {task?.orioks && <div className="orioks-task-dates"><span>ОРИОКС · неделя {task.orioks.week}</span><span>Плановая сдача: {formatDeadline(task.orioks.plannedDueAt, zone)}</span><span>Поле «Дедлайн» ниже — последний срок без снижения баллов. Его изменение будет отмечено как ручное.</span></div>}<label>Название<input autoFocus required maxLength={200} value={title} onChange={e => setTitle(e.target.value)} placeholder="Что нужно сделать?"/></label>
     <label>Описание<textarea maxLength={10000} rows={3} value={description} onChange={e => setDescription(e.target.value)} placeholder="Детали, ссылки и заметки"/></label>
     <div className="field-row"><label>Дата в плане<input type="date" value={plannedDate} onInput={e => setPlannedDate(e.currentTarget.value)} onChange={e => setPlannedDate(e.target.value)}/></label><label>Дедлайн<input type="datetime-local" value={deadline} onInput={e => setDeadline(e.currentTarget.value)} onChange={e => setDeadline(e.target.value)}/></label></div><p className="muted">Время: {zone}. Дата в плане и дедлайн могут отличаться.</p>
     <div className="field-row"><label>Приоритет<select value={priority} onChange={e => setPriority(e.target.value as Task['priority'])}>{Object.entries(priorities).map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select></label><label>Статус<select value={status} onChange={e => setStatus(e.target.value as Task['status'])}>{Object.entries(statuses).map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select></label></div>
     <label>Категория <span className="muted">необязательно</span><input list="task-categories" maxLength={100} value={category} onChange={e => setCategory(e.target.value)} placeholder="Учёба, Личное или своя категория"/><datalist id="task-categories"><option value="Учёба"/><option value="Личное"/></datalist></label>
     {error && <p className="auth-error" role="alert">{error}</p>}<button className="primary" type="submit" disabled={!title.trim()}>{pending ? 'Сохраняем…' : task ? 'Сохранить изменения' : 'Создать задачу'}</button>
-  </fieldset></form></dialog>;
+  </fieldset></form></Modal>;
 }
 
 export function DeleteTaskDialog({ task, onClose, onDeleted }: { task: Task; onClose: () => void; onDeleted: () => void }) {
-  const dialog = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
-  useEffect(() => { dialog.current?.showModal(); }, []);
   async function remove() {
     setPending(true); setError('');
     try { await apiRequest('/tasks/' + task.id, 'DELETE'); onDeleted(); }
     catch (err) { setError(err instanceof Error ? err.message : 'Не удалось удалить задачу.'); }
     finally { setPending(false); }
   }
-  return <dialog ref={dialog} className="modal task-dialog" onCancel={e => { e.preventDefault(); if (!pending) onClose(); }}><h2>Удалить задачу?</h2><p className="delete-description">«{task.title}» будет удалена. Восстановить её не получится.</p>{error && <p role="alert" className="auth-error">{error}</p>}<div className="dialog-actions"><button className="text-button" disabled={pending} onClick={onClose}>Отмена</button><button className="danger-button" disabled={pending} onClick={remove}>{pending ? 'Удаляем…' : 'Удалить задачу'}</button></div></dialog>;
+  return <Modal onClose={onClose} busy={pending} labelledBy={titleId}><h2 id={titleId}>Удалить задачу?</h2><p className="delete-description">«{task.title}» будет удалена. Восстановить её не получится.</p>{error && <p role="alert" className="auth-error">{error}</p>}<div className="dialog-actions"><button className="text-button" disabled={pending} onClick={onClose}>Отмена</button><button className="danger-button" disabled={pending} onClick={remove}>{pending ? 'Удаляем…' : 'Удалить задачу'}</button></div></Modal>;
 }
-
-

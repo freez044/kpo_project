@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { BookOpen, Check, Link2, RefreshCw, ShieldCheck, Unplug } from 'lucide-react';
-import { apiGet, apiRequest } from './auth';
+import { apiGet, apiRequest } from './services/api';
 import './orioks.css';
 import OrioksPlanning from './OrioksPlanning';
 
@@ -70,4 +70,3 @@ export default function Orioks() {
     {disconnecting && <dialog ref={dialog} className="modal task-dialog" onCancel={event => { event.preventDefault(); if (!pending) setDisconnecting(false); }}><h2>Отключить ОРИОКС?</h2><p className="delete-description">Ключ этого приложения будет отозван в ОРИОКС, а загруженные учебные данные удалены из планировщика. Ваши задачи останутся.</p>{error && <p className="auth-error" role="alert">{error}</p>}<div className="dialog-actions"><button disabled={pending} className="text-button" onClick={() => setDisconnecting(false)}>Отмена</button><button disabled={pending} className="danger-button" onClick={() => void run('disconnect')}>{pending ? 'Отключаем…' : 'Отключить'}</button></div></dialog>}
   </div>;
 }
-

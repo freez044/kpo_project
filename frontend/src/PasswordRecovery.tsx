@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { ArrowLeft, Check, Mail } from 'lucide-react';
-import { authRequest } from './auth';
+import { authRequest } from './services/api';
 
 export default function PasswordRecovery({ initialEmail, onBack }: { initialEmail: string; onBack: (email: string) => void }) {
   const [step, setStep] = useState<'email' | 'code' | 'done'>('email');

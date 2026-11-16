@@ -1,0 +1,5 @@
+.modal-backdrop{position:fixed;inset:0;background:#30392c66;display:grid;place-items:center;z-index:10;padding:20px;backdrop-filter:blur(3px)}
+.modal{width:440px;max-width:100%;background:white;padding:28px;border-radius:14px;box-shadow:0 20px 90px #25332133}
+.modal label{display:block;font-size:12px;margin:20px 0}
+.modal input,.modal select{width:100%;padding:12px;border:1px solid #dce3d2;border-radius:7px;margin-top:8px;background:#fafbf8;color:#4c5840}
+.modal form>.primary{width:100%;margin-top:12px}

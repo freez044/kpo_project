@@ -81,5 +81,3 @@ export default function Kanban({ tasks, zone, busyId, onMove, onEdit, onDelete, 
     {ghost && <div className="board-drag-ghost" aria-hidden="true" style={{ left: Math.max(8, Math.min(ghost.x + 12, window.innerWidth - 228)), top: Math.max(8, Math.min(ghost.y + 12, window.innerHeight - 90)) }}>{ghost.title}</div>}
   </section>;
 }
-
-

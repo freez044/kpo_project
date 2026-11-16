@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CalendarDays, Check, Download, ListChecks, Save } from 'lucide-react';
-import { apiGet, apiRequest } from './auth';
+import { apiGet, apiRequest } from './services/api';
 import './orioks-planning.css';
 
 type Subject = { id: number; name: string; events: { type: string }[] };
@@ -96,6 +96,3 @@ export default function OrioksPlanning({ subjects }: { subjects: Subject[] }) {
     </div>}
   </section>;
 }
-
-
-
