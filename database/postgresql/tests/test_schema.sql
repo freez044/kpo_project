@@ -2,10 +2,9 @@
 -- Запуск после install.sql: psql -d planner -f database/postgresql/tests/test_schema.sql
 -- Всё выполняется в одной транзакции и откатывается: база остаётся пустой.
 -- Успех — последняя строка «Все проверки пройдены». При ошибке скрипт останавливается.
-
 \set ON_ERROR_STOP on
 \set QUIET on
-\o /dev/null
+\o NUL
 BEGIN;
 
 -- Ожидаем, что запрос упадёт с заданным SQLSTATE.
