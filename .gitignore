@@ -3,4 +3,16 @@ __pycache__/
 .venv/
 node_modules/
 .env
+.env.*
+!.env.example
+*.key
+*.pem
+*.sqlite*
+*.db
+*.log
+.pnpm-store/
+dist/
+*.tsbuildinfo
 
+.pytest_cache/
+backend/data/
