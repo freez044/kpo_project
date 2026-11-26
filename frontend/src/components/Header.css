@@ -1,0 +1,23 @@
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar-title { font-weight: 600; }
+.topbar-actions { display: flex; gap: 8px; }
+
+.icon-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  font-size: 14px;
+  color: var(--text);
+}
+.icon-btn:hover { background: var(--bg); }
+.icon-btn.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-soft); }

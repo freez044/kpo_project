@@ -1,0 +1,22 @@
+:root {
+  --bg: #f7f7f8;
+  --surface: #ffffff;
+  --border: #e2e4e8;
+  --text: #1b1e23;
+  --muted: #6b7280;
+  --accent: #2f6feb;
+  --accent-soft: #e8f0fe;
+  --danger: #e5484d;
+  --warning: #e8a33d;
+  --success: #2fa86a;
+  --radius: 10px;
+
+  /* раздел задачи (левая часть карточки) */
+  --section-study: #7fb2ff;
+  --section-personal: #ffe27a;
+  /* важность задачи (правая часть карточки) */
+  --prio-low: #86d9a8;
+  --prio-medium: #ffb454;
+  --prio-high: #ff8585;
+  --prio-urgent: #ec5b61;
+}
