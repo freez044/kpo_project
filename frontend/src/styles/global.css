@@ -68,6 +68,7 @@ h1 { font-size: 20px; }
 .priority-high { background: var(--danger); }
 .priority-mid { background: var(--warning); }
 .priority-low { background: var(--success); }
+.priority-urgent { background: #9b1c22; box-shadow: 0 0 0 2px #f6caca; }
 
 .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
 .field label { font-size: 13px; color: var(--muted); }
@@ -99,3 +100,23 @@ h1 { font-size: 20px; }
   .app-shell { flex-direction: column; }
   .two-col { grid-template-columns: 1fr; }
 }
+
+/* ===== формы и состояния ===== */
+.muted { color: var(--muted); }
+.btn:disabled { opacity: .6; cursor: default; }
+.field input:disabled { background: var(--bg); color: var(--muted); }
+.form-error { margin: 0 0 12px; color: var(--danger); font-size: 13px; }
+.form-success { margin: 0 0 12px; color: var(--success); font-size: 13px; }
+.empty { padding: 4px 2px; color: var(--muted); font-size: 13px; }
+
+.task-check {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  flex-shrink: 0;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: none;
+}
+.task-check:hover { border-color: var(--success); background: var(--accent-soft); }
+.task-time.overdue { color: var(--danger); }

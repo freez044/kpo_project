@@ -10,4 +10,13 @@
   --warning: #e8a33d;
   --success: #2fa86a;
   --radius: 10px;
+
+  /* раздел задачи (левая часть карточки) */
+  --section-study: #7fb2ff;
+  --section-personal: #ffe27a;
+  /* важность задачи (правая часть карточки) */
+  --prio-low: #86d9a8;
+  --prio-medium: #ffb454;
+  --prio-high: #ff8585;
+  --prio-urgent: #ec5b61;
 }

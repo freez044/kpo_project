@@ -1,1 +1,15 @@
-.filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.filter-group { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+.filter-label { width: 44px; font-size: 12px; color: var(--muted); }
+
+.task-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin: 14px 0 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.task-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.task-legend i { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(0, 0, 0, 0.1); }
+.task-legend-sep { margin-left: 8px; }
